@@ -1,0 +1,13 @@
+INKYO VIEW
+
+Fichiers : index.html, manifest.webmanifest, sw.js, icones.
+
+Installer comme une application :
+1. Mets ces fichiers sur un hebergement en https (Netlify Drop, GitHub Pages, ou ton site Inkyo).
+2. Ouvre l'adresse sur ton telephone.
+3. Android (Chrome) : bouton "Installer" dans l'appli, ou menu > Installer l'application.
+   iPhone (Safari) : Partager > Sur l'ecran d'accueil.
+
+Sans hebergement : ouvre index.html directement dans un navigateur. Tout marche, sauf l'installation.
+
+Pour un vrai fichier .apk : donne l'adresse https a pwabuilder.com.
