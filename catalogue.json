@@ -1,0 +1,23 @@
+{
+ "series": [
+  {
+   "id": "moi",
+   "titre": "Moi",
+   "auteur": "Minou",
+   "resume": "",
+   "sens": "rtl",
+   "lecture": "page",
+   "couverture": "serie/moi/cover.jpg",
+   "chapitres": [
+    {
+     "n": 1,
+     "titre": "",
+     "dossier": "serie/moi/ch001",
+     "pages": 9,
+     "ext": "jpg",
+     "date": "2026-10-27"
+    }
+   ]
+  }
+ ]
+}
