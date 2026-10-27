@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06100a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Inkyo Planche</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Poppins:wght@600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: app bar, tabs (Livre / Trames), preview stage, presets, type + motif, parameters, export bar. Same green tokens as Inkyo View. */
+:root {
+  --bg: #f1f9f3; --bg2: #ffffff; --ink: #0c2015; --muted: #4f6b5a; --line: #c9e3d1;
+  --acc: #5cf593; --acc2: #22c765; --acc-ink: #062712; --acc-text: #0b7a3b; --glow: rgba(52, 214, 110, 0.55);
+  --mark1: #46e08a; --mark2: #16b55a; --mark3: #0b8a40; --overlay: rgba(241, 249, 243, 0.84);
+  --stage: #dff2e5;
+  --f-brand: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-body: 'Zen Kaku Gothic New', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #06100a; --bg2: #0f1c14; --ink: #e9f8ee; --muted: #86a894; --line: #1d3626;
+    --acc: #7dffa6; --acc2: #2fd16a; --acc-ink: #04210f; --acc-text: #7dffa6; --glow: rgba(125, 255, 166, 0.45);
+    --mark1: #d4ffe2; --mark2: #7dffa6; --mark3: #2fd16a; --overlay: rgba(6, 16, 10, 0.8); --stage: #07110b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #06100a; --bg2: #0f1c14; --ink: #e9f8ee; --muted: #86a894; --line: #1d3626;
+  --acc: #7dffa6; --acc2: #2fd16a; --acc-ink: #04210f; --acc-text: #7dffa6; --glow: rgba(125, 255, 166, 0.45);
+  --mark1: #d4ffe2; --mark2: #7dffa6; --mark3: #2fd16a; --overlay: rgba(6, 16, 10, 0.8); --stage: #07110b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark { font-family: var(--f-brand); font-weight: 800; font-size: 24px; line-height: 0.8; letter-spacing: -0.03em; display: flex; flex-direction: column; background: linear-gradient(135deg, var(--mark1), var(--mark2) 50%, var(--mark3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.32em; color: var(--acc-text); text-transform: uppercase; padding-left: 12px; border-left: 1px solid var(--line); line-height: 1.2; }
+.btn { font: 500 14px/1 var(--f-body); min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.btn:hover:not(:disabled) { border-color: var(--acc2); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: linear-gradient(135deg, var(--acc), var(--acc2)); border-color: transparent; color: var(--acc-ink); font-weight: 700; box-shadow: 0 6px 24px -8px var(--glow); }
+.btn.icon { width: 44px; padding: 0; }
+.btn[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); font-weight: 700; }
+.btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--acc2); outline-offset: 2px; }
+#themeBtn svg { display: none; }
+#themeBtn[data-mode="auto"] .t-auto, #themeBtn[data-mode="light"] .t-light, #themeBtn[data-mode="dark"] .t-dark { display: block; }
+
+.tabs { display: flex; gap: 6px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
+.tabs a { flex: 1; text-align: center; padding: 10px 8px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 700; font-family: var(--f-brand); font-size: 14px; }
+.tabs a[aria-current="page"] { background: linear-gradient(135deg, var(--acc), var(--acc2)); color: var(--acc-ink); }
+
+.stage { position: relative; display: flex; justify-content: center; align-items: center; border: 1px solid var(--line); border-radius: 18px; background: var(--stage); padding: 12px; overflow: hidden; }
+.paper { position: relative; background: #fff; box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45); line-height: 0; touch-action: pan-y; }
+.paper.ink-white { background: #17171b; }
+.paper.detail { touch-action: none; cursor: grab; }
+.paper canvas { display: block; width: 100%; height: 100%; }
+.busy { position: absolute; right: 10px; top: 10px; font: 11px var(--f-mono); color: var(--muted); letter-spacing: 0.1em; }
+
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.lbl { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: nowrap; }
+.seg .btn { border-radius: 0; margin-left: -1px; min-height: 40px; padding: 0 14px; }
+.seg .btn:first-child { border-radius: 12px 0 0 12px; margin-left: 0; }
+.seg .btn:last-child { border-radius: 0 12px 12px 0; }
+.seg.full { display: flex; width: 100%; }
+.seg.full .btn { flex: 1; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.chips .btn { flex: none; min-height: 38px; font-size: 13px; }
+
+.panel { border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.panel h2 { margin: 0; font-family: var(--f-brand); font-size: 15px; font-weight: 700; }
+.ctrl { display: flex; flex-direction: column; gap: 2px; }
+.ctrl .top2 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ctrl label { font-size: 14px; }
+.ctrl output { font-family: var(--f-mono); font-size: 13px; color: var(--acc-text); font-variant-numeric: tabular-nums; }
+.ctrl input[type=range] { width: 100%; accent-color: var(--acc2); margin: 0; min-height: 30px; }
+.ctrl .hint2 { font-size: 12px; color: var(--muted); }
+.sel { font: 500 15px/1.2 var(--f-body); min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.exports { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exports .wide { grid-column: 1 / -1; }
+.note { margin: 0; font-size: 13px; color: var(--muted); }
+.note.ok { color: var(--acc-text); }
+.dice { min-height: 36px; padding: 0 12px; }
+.nums { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nums input { font: 500 15px var(--f-body); min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+.verdict { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-size: 14px; }
+.verdict.good { border-color: var(--acc2); } .verdict.bad { border-color: #e0243f; }
+.pick { position: relative; display: block; } .pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+@media (max-width: 520px) { .tag { display: none; } .mark { font-size: 21px; } }
+</style>
+<script>try { var __t = localStorage.getItem('iv-theme'); if (__t === 'light' || __t === 'dark') document.documentElement.setAttribute('data-theme', __t); } catch (e) {}</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="mark"><span>Ink</span><span>yo</span></div><div class="tag">Planche</div></div>
+    <button class="btn icon" id="themeBtn" type="button" data-mode="auto" aria-label="Thème : automatique">
+      <svg class="t-auto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/></svg>
+      <svg class="t-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="t-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/></svg>
+    </button>
+  </header>
+  <nav class="tabs" aria-label="Outils"><a href="./">Livre</a><a href="trames.html">Trames</a><a href="planche.html" aria-current="page">Planche</a></nav>
+
+  <div class="stage" id="stage"><div class="paper" id="paper"><canvas id="cv"></canvas></div></div>
+  <div class="legend"><span><i style="border-color:#00a6d6"></i>Fond perdu : le dessin doit aller jusque-là</span><span><i style="border-color:#e0247f"></i>Coupe : bord du livre fini</span><span><i style="border-color:#1fae5b;border-top-style:dashed"></i>Sécurité : texte et visages dedans</span></div>
+
+  <section class="panel">
+    <h2>Format du livre</h2>
+    <select class="sel" id="fmt" aria-label="Format"></select>
+    <div class="nums" id="customBox" hidden>
+      <div class="ctrl"><label for="cw">Largeur (mm)</label><input id="cw" type="number" min="60" max="400" step="1"></div>
+      <div class="ctrl"><label for="ch">Hauteur (mm)</label><input id="ch" type="number" min="60" max="500" step="1"></div>
+    </div>
+    <div id="ctrls" style="display:flex;flex-direction:column;gap:14px"></div>
+    <div class="row"><span class="lbl">Définition</span><div class="seg" id="segDpi"></div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Découpage des cases</h2>
+    <div class="chips" id="layouts"></div>
+    <div class="row"><span class="lbl">Cases</span><div class="seg"><button class="btn" id="pOn" type="button" aria-pressed="true">Oui</button><button class="btn" id="pOff" type="button" aria-pressed="false">Non</button></div></div>
+    <div class="row"><span class="lbl">Cadre de sécurité</span><div class="seg"><button class="btn" id="gOn" type="button" aria-pressed="true">Oui</button><button class="btn" id="gOff" type="button" aria-pressed="false">Non</button></div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Vérifier une planche</h2>
+    <p class="note">Choisis une de tes planches : je dis si elle est assez nette pour l'impression, et je la montre sous les repères.</p>
+    <label class="pick"><span class="btn primary" style="width:100%">Choisir une planche</span><input type="file" id="chk" accept="image/*"></label>
+    <div class="verdict" id="verdict" hidden></div>
+    <button class="btn" id="chkOff" type="button" hidden>Retirer la planche de l'aperçu</button>
+  </section>
+
+  <section class="panel">
+    <h2>Exporter le gabarit</h2>
+    <div class="exports">
+      <button class="btn primary wide" id="dl" type="button">Télécharger le PNG (repères)</button>
+      <button class="btn" id="share" type="button">Partager</button>
+      <button class="btn" id="dlWhite" type="button">Sur fond blanc</button>
+    </div>
+    <p class="note" id="msg">Le PNG a un fond transparent : mets-le en calque de repères dans ton appli de dessin.</p>
+  </section>
+</div>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var themeMode = 'auto';
+  try { var tm = localStorage.getItem('iv-theme'); if (tm === 'light' || tm === 'dark') themeMode = tm; } catch (e) {}
+  function applyTheme() {
+    var r = document.documentElement; if (themeMode === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', themeMode);
+    var b = $('themeBtn'), nm = { auto: 'automatique', light: 'clair', dark: 'sombre' };
+    b.setAttribute('data-mode', themeMode); b.setAttribute('aria-label', 'Thème : ' + nm[themeMode]);
+    try { document.querySelector('meta[name="theme-color"]').setAttribute('content', getComputedStyle(r).getPropertyValue('--bg').trim()); } catch (e) {}
+  }
+  $('themeBtn').addEventListener('click', function () {
+    themeMode = themeMode === 'auto' ? 'light' : (themeMode === 'light' ? 'dark' : 'auto');
+    try { if (themeMode === 'auto') localStorage.removeItem('iv-theme'); else localStorage.setItem('iv-theme', themeMode); } catch (e) {}
+    applyTheme();
+  });
+  applyTheme();
+
+  var FORMATS = [
+    { id: 'b5', n: 'B5 : 182 × 257 mm (magazine)', w: 182, h: 257 },
+    { id: 'b6', n: 'B6 : 128 × 182 mm (tankōbon courant)', w: 128, h: 182 },
+    { id: 'a5', n: 'A5 : 148 × 210 mm', w: 148, h: 210 },
+    { id: 'cus', n: 'Format personnalisé', w: 150, h: 210 }
+  ];
+  var LAYOUTS = [
+    { n: 'Page vide', rows: [] },
+    { n: '1 case', rows: [{ h: 1, c: [1] }] },
+    { n: '2 bandes', rows: [{ h: 1, c: [1] }, { h: 1, c: [1] }] },
+    { n: '3 bandes', rows: [{ h: 1, c: [1] }, { h: 1, c: [1] }, { h: 1, c: [1] }] },
+    { n: '4 cases', rows: [{ h: 1, c: [1, 1] }, { h: 1, c: [1, 1] }] },
+    { n: '6 cases', rows: [{ h: 1, c: [1, 1] }, { h: 1, c: [1, 1] }, { h: 1, c: [1, 1] }] },
+    { n: 'Manga classique', rows: [{ h: 1, c: [1, 1] }, { h: 1.25, c: [1] }, { h: 1, c: [1.4, 1] }, { h: 1, c: [1, 1.4] }] },
+    { n: 'Case dominante', rows: [{ h: 2, c: [1] }, { h: 1, c: [1, 1, 1] }] },
+    { n: 'Escalier', rows: [{ h: 1, c: [2, 1] }, { h: 1, c: [1, 2] }, { h: 1.2, c: [1.5, 1] }] },
+    { n: 'Action', rows: [{ h: 0.8, c: [1, 1, 1] }, { h: 1.6, c: [1] }, { h: 1, c: [1, 2] }] }
+  ];
+  var DEF = { fmt: 'b5', cw: 150, ch: 210, bleed: 3, safe: 10, gut: 4, dpi: 300, lay: 6, panels: true, guides: true };
+  var S = {};
+  (function () { for (var k in DEF) S[k] = DEF[k]; try { var sv = JSON.parse(localStorage.getItem('iv-planche') || 'null'); if (sv) for (var k2 in DEF) if (sv[k2] !== undefined) S[k2] = sv[k2]; } catch (e) {} })();
+  function save() { try { localStorage.setItem('iv-planche', JSON.stringify(S)); } catch (e) {} }
+  var CTRL = [
+    { k: 'bleed', l: 'Fond perdu', min: 0, max: 10, u: ' mm', h: 'Marge de dessin en plus, coupée par l\'imprimeur. 3 mm est courant : demande à ton imprimeur.' },
+    { k: 'safe', l: 'Marge de sécurité', min: 3, max: 25, u: ' mm', h: 'Garde textes et visages à l\'intérieur.' },
+    { k: 'gut', l: 'Espace entre les cases', min: 0, max: 12, u: ' mm' }
+  ];
+  function fmt() { for (var i = 0; i < FORMATS.length; i++) if (FORMATS[i].id === S.fmt) return FORMATS[i]; return FORMATS[0]; }
+  function trim() { var f = fmt(); return f.id === 'cus' ? { w: +S.cw || 150, h: +S.ch || 210 } : { w: f.w, h: f.h }; }
+
+  var userImg = null;
+  /* draw everything in mm space; ppm = pixels per mm */
+  function draw(cv, ppm, opts) {
+    var T = trim(), b = S.bleed, W = T.w + 2 * b, H = T.h + 2 * b, ctx = cv.getContext('2d'), lw = opts.lw;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(ppm, 0, 0, ppm, 0, 0);
+    if (opts.white) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
+    if (opts.img) ctx.drawImage(opts.img, 0, 0, W, H);
+    var u = lw / ppm; /* line width in mm */
+    var ix = b + S.safe, iy = b + S.safe, iw = T.w - 2 * S.safe, ih = T.h - 2 * S.safe;
+    if (S.panels && LAYOUTS[S.lay] && LAYOUTS[S.lay].rows.length) {
+      var rows = LAYOUTS[S.lay].rows, g = S.gut, th = 0, r, c;
+      rows.forEach(function (rw) { th += rw.h; });
+      var avail = ih - g * (rows.length - 1), y = iy;
+      ctx.strokeStyle = '#111'; ctx.lineWidth = u * 1.6; ctx.lineJoin = 'miter';
+      rows.forEach(function (rw) {
+        var rh = avail * rw.h / th, tw = 0; rw.c.forEach(function (v) { tw += v; });
+        var aw = iw - g * (rw.c.length - 1), x = ix;
+        rw.c.forEach(function (v) { var cw = aw * v / tw; ctx.strokeRect(x, y, cw, rh); x += cw + g; });
+        y += rh + g;
+      });
+    }
+    if (S.guides) {
+      ctx.lineWidth = u;
+      ctx.strokeStyle = '#00a6d6'; ctx.setLineDash([]); ctx.strokeRect(u / 2, u / 2, W - u, H - u);
+      ctx.strokeStyle = '#e0247f'; ctx.strokeRect(b, b, T.w, T.h);
+      ctx.strokeStyle = '#1fae5b'; ctx.setLineDash([u * 6, u * 4]); ctx.strokeRect(ix, iy, iw, ih); ctx.setLineDash([]);
+    }
+  }
+  var cv = $('cv'), paper = $('paper'), stage = $('stage'), dprv = Math.min(window.devicePixelRatio || 1, 2.5), queued = false;
+  function paint() {
+    var T = trim(), W = T.w + 2 * S.bleed, H = T.h + 2 * S.bleed, availW = stage.clientWidth - 24, maxH = Math.max(340, window.innerHeight * 0.68);
+    var cssW = Math.min(availW, maxH * W / H), cssH = cssW * H / W; cssW = Math.floor(cssW); cssH = Math.floor(cssH);
+    paper.style.width = cssW + 'px'; paper.style.height = cssH + 'px'; cv.width = Math.round(cssW * dprv); cv.height = Math.round(cssH * dprv);
+    draw(cv, cv.width / W, { lw: Math.max(1.2, dprv * 1.2), img: userImg });
+  }
+  function redraw() { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; paint(); }); }
+  window.addEventListener('resize', redraw);
+
+  /* UI */
+  FORMATS.forEach(function (f) { var o = document.createElement('option'); o.value = f.id; o.textContent = f.n; $('fmt').appendChild(o); });
+  $('fmt').addEventListener('change', function () { S.fmt = $('fmt').value; save(); sync(); });
+  $('cw').addEventListener('input', function () { S.cw = +$('cw').value; save(); redraw(); recheck(); });
+  $('ch').addEventListener('input', function () { S.ch = +$('ch').value; save(); redraw(); recheck(); });
+  var cbox = $('ctrls');
+  CTRL.forEach(function (c) {
+    var d = document.createElement('div'); d.className = 'ctrl'; var id = 'c_' + c.k;
+    d.innerHTML = '<div class="top2"><label for="' + id + '">' + c.l + '</label><output></output></div><input id="' + id + '" type="range" min="' + c.min + '" max="' + c.max + '" step="1">' + (c.h ? '<div class="hint2">' + c.h + '</div>' : '');
+    var inp = d.querySelector('input'), out = d.querySelector('output');
+    inp.addEventListener('input', function () { S[c.k] = +inp.value; out.textContent = inp.value + c.u; save(); redraw(); recheck(); });
+    d._i = inp; d._o = out; d._c = c; cbox.appendChild(d);
+  });
+  [150, 300, 600].forEach(function (v) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = v + ' dpi'; b.dataset.v = v;
+    b.addEventListener('click', function () { S.dpi = v; save(); sync(); }); $('segDpi').appendChild(b);
+  });
+  LAYOUTS.forEach(function (l, i) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = l.n; b.dataset.i = i;
+    b.addEventListener('click', function () { S.lay = i; S.panels = true; save(); sync(); }); $('layouts').appendChild(b);
+  });
+  $('pOn').addEventListener('click', function () { S.panels = true; save(); sync(); }); $('pOff').addEventListener('click', function () { S.panels = false; save(); sync(); });
+  $('gOn').addEventListener('click', function () { S.guides = true; save(); sync(); }); $('gOff').addEventListener('click', function () { S.guides = false; save(); sync(); });
+  function sync() {
+    $('fmt').value = S.fmt; $('customBox').hidden = S.fmt !== 'cus'; $('cw').value = S.cw; $('ch').value = S.ch;
+    Array.prototype.forEach.call(cbox.children, function (d) { d._i.value = S[d._c.k]; d._o.textContent = S[d._c.k] + d._c.u; });
+    Array.prototype.forEach.call($('segDpi').children, function (b) { b.setAttribute('aria-pressed', String(+b.dataset.v === S.dpi)); });
+    Array.prototype.forEach.call($('layouts').children, function (b) { b.setAttribute('aria-pressed', String(S.panels && +b.dataset.i === S.lay)); });
+    $('pOn').setAttribute('aria-pressed', String(S.panels)); $('pOff').setAttribute('aria-pressed', String(!S.panels));
+    $('gOn').setAttribute('aria-pressed', String(S.guides)); $('gOff').setAttribute('aria-pressed', String(!S.guides));
+    redraw(); recheck();
+  }
+
+  /* print check */
+  var imgInfo = null;
+  function recheck() {
+    var v = $('verdict'); if (!imgInfo) { v.hidden = true; return; }
+    var T = trim(), b = S.bleed, W = T.w + 2 * b, H = T.h + 2 * b, wi = W / 25.4, hi = H / 25.4;
+    var dpiX = imgInfo.w / wi, dpiY = imgInfo.h / hi, dpi = Math.min(dpiX, dpiY), ratioImg = imgInfo.w / imgInfo.h, ratio = W / H, diff = Math.abs(ratioImg / ratio - 1);
+    var msg = 'Ta planche : ' + imgInfo.w + ' × ' + imgInfo.h + ' px. Pour le format avec fond perdu (' + W + ' × ' + H + ' mm), c\'est environ ' + Math.round(dpi) + ' dpi.<br>';
+    var good = true;
+    if (dpi >= 290) msg += 'Netteté : très bien pour l\'impression (300 dpi ou plus).';
+    else if (dpi >= 200) { msg += 'Netteté : correcte mais juste. Idéal : 300 dpi, soit ' + Math.round(wi * 300) + ' × ' + Math.round(hi * 300) + ' px.'; }
+    else { good = false; msg += 'Netteté : trop faible pour imprimer. Il faudrait environ ' + Math.round(wi * 300) + ' × ' + Math.round(hi * 300) + ' px.'; }
+    if (diff > 0.02) { good = false; msg += '<br>Les proportions ne correspondent pas au format (écart ' + Math.round(diff * 100) + ' %) : l\'image est étirée ici dans l\'aperçu. Dessine sur une page à la bonne taille.'; }
+    v.className = 'verdict ' + (good ? 'good' : 'bad'); v.innerHTML = msg; v.hidden = false;
+  }
+  $('chk').addEventListener('change', function () {
+    var f = $('chk').files && $('chk').files[0]; if (!f) return;
+    var im = new Image(), url = URL.createObjectURL(f);
+    im.onload = function () { userImg = im; imgInfo = { w: im.naturalWidth, h: im.naturalHeight }; $('chkOff').hidden = false; recheck(); redraw(); };
+    im.onerror = function () { var v = $('verdict'); v.className = 'verdict bad'; v.textContent = 'Cette image n\'a pas pu être lue.'; v.hidden = false; };
+    im.src = url;
+  });
+  $('chkOff').addEventListener('click', function () { userImg = null; imgInfo = null; $('chkOff').hidden = true; $('chk').value = ''; recheck(); redraw(); });
+
+  /* export */
+  function say(t, ok) { var m = $('msg'); m.textContent = t; m.className = 'note' + (ok ? ' ok' : ''); }
+  function makeBlob(white, cb) {
+    var T = trim(), b = S.bleed, ppm = S.dpi / 25.4, c = document.createElement('canvas');
+    c.width = Math.round((T.w + 2 * b) * ppm); c.height = Math.round((T.h + 2 * b) * ppm);
+    try { draw(c, ppm, { lw: Math.max(2, S.dpi / 150), white: white }); c.toBlob(cb, 'image/png'); } catch (e) { cb(null); }
+  }
+  function fname(w) { var T = trim(); return 'gabarit-' + T.w + 'x' + T.h + 'mm-' + S.dpi + 'dpi' + (w ? '-blanc' : '') + '.png'; }
+  function go(white) {
+    say('Création du PNG…');
+    setTimeout(function () {
+      makeBlob(white, function (bl) {
+        if (!bl) { say('Le PNG n\'a pas pu être créé : choisis 150 ou 300 dpi.'); return; }
+        var a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = fname(white); document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        say('PNG prêt : ' + fname(white) + ' (' + Math.round(bl.size / 1024) + ' Ko). Regarde dans tes téléchargements.', true);
+      });
+    }, 30);
+  }
+  $('dl').addEventListener('click', function () { go(false); });
+  $('dlWhite').addEventListener('click', function () { go(true); });
+  $('share').addEventListener('click', function () {
+    say('Création du PNG…');
+    setTimeout(function () {
+      makeBlob(false, function (bl) {
+        if (!bl) { say('Le PNG n\'a pas pu être créé : choisis 150 ou 300 dpi.'); return; }
+        var f = new File([bl], fname(false), { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: 'Gabarit Inkyo' }).then(function () { say('Partagé.', true); }, function () { say('Partage annulé.'); });
+        else say('Le partage n\'est pas disponible ici : utilise « Télécharger le PNG ».');
+      });
+    }, 30);
+  });
+  sync();
+  window.__pl = { S: S, sync: sync };
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(function () {});
+})();
+</script>
+</body>
+</html>

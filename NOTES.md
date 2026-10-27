@@ -6,15 +6,17 @@
 ## Vision
 Passer d'une simple visionneuse de planches à une **boîte à outils du mangaka + site de lecture**, 100 % dans le navigateur (téléphone d'abord), hébergée sur GitHub Pages (https://minouemmanuel72-dot.github.io/Inkyo-view2/).
 
-## État actuel (v3 — vert lumineux, clair/sombre)
+## État actuel (v5)
 - Importer ses planches (images), réordonner, supprimer.
 - 3 vues : **Lire** (2D), **3D** (livre avec épaisseur, rotation, pages courbes), **Maquette** (dos + 4e de couverture, largeur du dos calculée).
 - Sens de lecture japonais / occidental.
 - Enregistrement vidéo (+ son de pages), plein écran immersif.
 - Sauvegarde locale (IndexedDB), installable (PWA), thème auto / clair / sombre.
+- Onglet **Trames** : points, dégradé, ciel, grain, lignes de vitesse ; motifs points/lignes/croisé/carrés ; « Mes trames » ; export PNG transparent.
+- Onglet **Planche** : gabarit (format, fond perdu, coupe, sécurité, découpages de cases) en PNG ; vérification DPI d'une planche.
 
 ## Technique
-- Un seul fichier `index.html` (CSS + JS inclus) + `sw.js`, `manifest.webmanifest`, 3 icônes.
+- Trois pages : `index.html` (Livre), `trames.html`, `planche.html`, reliées par les onglets en haut. Un seul fichier chacune (CSS + JS inclus) + `sw.js`, `manifest.webmanifest`, 3 icônes.
 - Moteur WebGL maison (pas de bibliothèque externe).
 - Cache hors-ligne : nom `inkyo-view-vN` dans `sw.js` → **augmenter N à chaque mise à jour**.
 
@@ -26,9 +28,11 @@ Passer d'une simple visionneuse de planches à une **boîte à outils du mangaka
 
 ## Feuille de route
 ### Atelier de création
-- [ ] Générateur de trames (screentones) : points, lignes, dégradés, densité/angle/taille, export PNG transparent
-- [ ] Gabarits de planche : cases, marges, zone de coupe/fond perdu, repères d'impression
-- [ ] Vérification d'impression : dimensions, résolution (DPI), marges de sécurité
+- [x] Générateur de trames (v4) : points, lignes, croisé ; dégradé linéaire/radial ; ciel (nuages, étoiles) ; export PNG transparent
+- [x] Trames v5 : grain, lignes de vitesse (concentration/parallèles), carrés, « Mes trames »
+- [ ] Trames : éclairs, fond de ville/hachures, trames de tissu
+- [x] Gabarits de planche (v5) : cases, marges, coupe, fond perdu
+- [x] Vérification d'impression (v5) : résolution (DPI) et proportions d'une planche
 - [ ] Export PDF du livre complet pour l'imprimeur
 - [ ] Bulles et texte : bibliothèque de bulles, onomatopées
 - [ ] Storyboard / chemin de fer : vue d'ensemble des pages, rythme (doubles pages, tournées de page)
@@ -43,4 +47,6 @@ Passer d'une simple visionneuse de planches à une **boîte à outils du mangaka
 ## Journal
 - v1 : visionneuse 2D, import.
 - v2 : 3D, maquette, vidéo, PWA, sauvegarde.
+- v5 : grain, vitesse, carrés, Mes trames ; onglet Planche (gabarit + vérification) ; cache `inkyo-view-v5`.
+- v4 : onglet Trames (générateur points / dégradé / ciel), `trames.html`.
 - v3 : netteté des images, vert lumineux, thèmes clair/sombre, nouvelles icônes.
