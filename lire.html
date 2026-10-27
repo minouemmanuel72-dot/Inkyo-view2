@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06100a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Inkyo Lecture</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Poppins:wght@600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: app bar, tabs (Livre / Trames), preview stage, presets, type + motif, parameters, export bar. Same green tokens as Inkyo View. */
+:root {
+  --bg: #f1f9f3; --bg2: #ffffff; --ink: #0c2015; --muted: #4f6b5a; --line: #c9e3d1;
+  --acc: #5cf593; --acc2: #22c765; --acc-ink: #062712; --acc-text: #0b7a3b; --glow: rgba(52, 214, 110, 0.55);
+  --mark1: #46e08a; --mark2: #16b55a; --mark3: #0b8a40; --overlay: rgba(241, 249, 243, 0.84);
+  --stage: #dff2e5;
+  --f-brand: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-body: 'Zen Kaku Gothic New', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #06100a; --bg2: #0f1c14; --ink: #e9f8ee; --muted: #86a894; --line: #1d3626;
+    --acc: #7dffa6; --acc2: #2fd16a; --acc-ink: #04210f; --acc-text: #7dffa6; --glow: rgba(125, 255, 166, 0.45);
+    --mark1: #d4ffe2; --mark2: #7dffa6; --mark3: #2fd16a; --overlay: rgba(6, 16, 10, 0.8); --stage: #07110b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #06100a; --bg2: #0f1c14; --ink: #e9f8ee; --muted: #86a894; --line: #1d3626;
+  --acc: #7dffa6; --acc2: #2fd16a; --acc-ink: #04210f; --acc-text: #7dffa6; --glow: rgba(125, 255, 166, 0.45);
+  --mark1: #d4ffe2; --mark2: #7dffa6; --mark3: #2fd16a; --overlay: rgba(6, 16, 10, 0.8); --stage: #07110b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark { font-family: var(--f-brand); font-weight: 800; font-size: 24px; line-height: 0.8; letter-spacing: -0.03em; display: flex; flex-direction: column; background: linear-gradient(135deg, var(--mark1), var(--mark2) 50%, var(--mark3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.32em; color: var(--acc-text); text-transform: uppercase; padding-left: 12px; border-left: 1px solid var(--line); line-height: 1.2; }
+.btn { font: 500 14px/1 var(--f-body); min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.btn:hover:not(:disabled) { border-color: var(--acc2); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: linear-gradient(135deg, var(--acc), var(--acc2)); border-color: transparent; color: var(--acc-ink); font-weight: 700; box-shadow: 0 6px 24px -8px var(--glow); }
+.btn.icon { width: 44px; padding: 0; }
+.btn[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); font-weight: 700; }
+.btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--acc2); outline-offset: 2px; }
+#themeBtn svg { display: none; }
+#themeBtn[data-mode="auto"] .t-auto, #themeBtn[data-mode="light"] .t-light, #themeBtn[data-mode="dark"] .t-dark { display: block; }
+
+.tabs { display: flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
+.tabs a { flex: 1; text-align: center; padding: 10px 2px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 700; font-family: var(--f-brand); font-size: 13px; white-space: nowrap; }
+.tabs a[aria-current="page"] { background: linear-gradient(135deg, var(--acc), var(--acc2)); color: var(--acc-ink); }
+
+.stage { position: relative; display: flex; justify-content: center; align-items: center; border: 1px solid var(--line); border-radius: 18px; background: var(--stage); padding: 12px; overflow: hidden; }
+.paper { position: relative; background: #fff; box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45); line-height: 0; touch-action: pan-y; }
+.paper.ink-white { background: #17171b; }
+.paper.detail { touch-action: none; cursor: grab; }
+.paper canvas { display: block; width: 100%; height: 100%; }
+.busy { position: absolute; right: 10px; top: 10px; font: 11px var(--f-mono); color: var(--muted); letter-spacing: 0.1em; }
+
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.lbl { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: nowrap; }
+.seg .btn { border-radius: 0; margin-left: -1px; min-height: 40px; padding: 0 14px; }
+.seg .btn:first-child { border-radius: 12px 0 0 12px; margin-left: 0; }
+.seg .btn:last-child { border-radius: 0 12px 12px 0; }
+.seg.full { display: flex; width: 100%; }
+.seg.full .btn { flex: 1; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.chips .btn { flex: none; min-height: 38px; font-size: 13px; }
+
+.panel { border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.panel h2 { margin: 0; font-family: var(--f-brand); font-size: 15px; font-weight: 700; }
+.ctrl { display: flex; flex-direction: column; gap: 2px; }
+.ctrl .top2 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ctrl label { font-size: 14px; }
+.ctrl output { font-family: var(--f-mono); font-size: 13px; color: var(--acc-text); font-variant-numeric: tabular-nums; }
+.ctrl input[type=range] { width: 100%; accent-color: var(--acc2); margin: 0; min-height: 30px; }
+.ctrl .hint2 { font-size: 12px; color: var(--muted); }
+.sel { font: 500 15px/1.2 var(--f-body); min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.exports { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exports .wide { grid-column: 1 / -1; }
+.note { margin: 0; font-size: 13px; color: var(--muted); }
+.note.ok { color: var(--acc-text); }
+.dice { min-height: 36px; padding: 0 12px; }
+.nums { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nums input { font: 500 15px var(--f-body); min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+.verdict { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-size: 14px; }
+.verdict.good { border-color: var(--acc2); } .verdict.bad { border-color: #e0243f; }
+.pick { position: relative; display: block; } .pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+@media (max-width: 520px) { .tag { display: none; } .mark { font-size: 21px; } }
+
+.empty { text-align: center; padding: 40px 10px; color: var(--muted); } .empty h2 { color: var(--ink); font-family: var(--f-brand); }
+.empty a, .back { color: var(--acc-text); font-weight: 700; text-decoration: none; }
+.sec { font-family: var(--f-brand); font-size: 17px; margin: 10px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+.card { text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 6px; }
+.cover { position: relative; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: linear-gradient(135deg, var(--mark1), var(--mark3)); box-shadow: 0 10px 24px -14px rgba(0,0,0,.5); }
+.cover .ph { position: absolute; inset: 0; display: grid; place-items: center; font: 800 48px var(--f-brand); color: var(--acc-ink); opacity: .5; }
+.cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ct { font-weight: 700; font-family: var(--f-brand); font-size: 14px; line-height: 1.25; } .ca { font-size: 12px; color: var(--muted); }
+.resume { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 14px; text-decoration: none; color: var(--acc-ink); background: linear-gradient(135deg, var(--acc), var(--acc2)); margin-bottom: 8px; box-shadow: 0 8px 24px -10px var(--glow); }
+.resume .lbl { color: var(--acc-ink); opacity: .75; } .resume strong { font-family: var(--f-brand); font-size: 18px; }
+.back { display: inline-block; padding: 4px 0 10px; }
+.shead { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; }
+.sinfo { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; } .sinfo h1 { margin: 0; font: 800 22px/1.15 var(--f-brand); } .sinfo p { margin: 0; color: var(--muted); font-size: 14px; }
+.chl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); overflow: hidden; }
+.chl li + li { border-top: 1px solid var(--line); } .chl a { display: flex; align-items: center; gap: 14px; padding: 12px 16px; text-decoration: none; color: var(--ink); min-height: 56px; }
+.chl .cn { font: 500 14px var(--f-mono); color: var(--acc-text); min-width: 2.2ch; } .chl .ctt { flex: 1; font-weight: 700; display: flex; flex-direction: column; } .chl small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.chl .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--acc2); } .chl .none { padding: 14px 16px; color: var(--muted); }
+body.reading { overflow: hidden; }
+#reader { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; flex-direction: column; touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; }
+#reader[hidden] { display: none; }
+.rbar { position: absolute; left: 0; right: 0; z-index: 5; display: flex; align-items: center; gap: 8px; padding: 8px max(12px, env(safe-area-inset-left, 0px)); background: var(--overlay); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); transition: transform .2s, opacity .2s; }
+.rtop { top: 0; padding-top: max(8px, env(safe-area-inset-top, 0px)); border-bottom: 1px solid var(--line); } .rbot { bottom: 0; padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); }
+.ui-hidden .rtop { transform: translateY(-110%); opacity: 0; } .ui-hidden .rbot { transform: translateY(110%); opacity: 0; }
+.rtitle { flex: 1; font: 700 14px var(--f-brand); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.rbot input[type=range] { flex: 1; accent-color: var(--acc2); min-height: 30px; margin: 0; } .rcount { font: 500 13px var(--f-mono); min-width: 7ch; font-variant-numeric: tabular-nums; }
+#rMode svg { display: none; } .mode-page #rMode .m-scroll, .mode-scroll #rMode .m-page { display: block; }
+#rBody { position: absolute; inset: 0; }
+#pgwrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; } #pg { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; transition: opacity .15s; background: #fff; }
+.spin { position: absolute; color: var(--muted); font: 500 13px var(--f-mono); }
+#endwrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.endcard { display: flex; flex-direction: column; gap: 12px; align-items: center; padding: 40px 20px 80px; text-align: center; } .endcard h2 { font-family: var(--f-brand); margin: 0; }
+#scroll { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 54px 0 70px; }
+.sp { max-width: 900px; margin: 0 auto; min-height: 60vh; background: var(--bg2); } .sp.ok { min-height: 0; background: none; } .sp img { display: block; width: 100%; height: auto; }
+.toast { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 99px; font-size: 13px; z-index: 8; }
+.toast[hidden] { display: none; }
+</style>
+<script>try { var __t = localStorage.getItem('iv-theme'); if (__t === 'light' || __t === 'dark') document.documentElement.setAttribute('data-theme', __t); } catch (e) {}</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="mark"><span>Ink</span><span>yo</span></div><div class="tag">Lecture</div></div>
+    <button class="btn icon" id="themeBtn" type="button" data-mode="auto" aria-label="Thème : automatique">
+      <svg class="t-auto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/></svg>
+      <svg class="t-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="t-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/></svg>
+    </button>
+  </header>
+  <nav class="tabs" aria-label="Outils"><a href="./">Livre</a><a href="trames.html">Trames</a><a href="planche.html">Planche</a><a href="lire.html" aria-current="page">Lire</a><a href="publier.html">Publier</a></nav>
+  <main id="view" aria-live="polite"></main>
+</div>
+
+<div id="reader" hidden>
+  <div class="rbar rtop" id="rtop">
+    <button class="btn icon" id="rClose" type="button" aria-label="Fermer la lecture">✕</button>
+    <div class="rtitle" id="rTitle"></div>
+    <button class="btn icon" id="rMode" type="button" aria-label="Changer le mode de lecture" title="Changer le mode de lecture">
+      <svg class="m-page" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5"/></svg>
+      <svg class="m-scroll" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/></svg>
+    </button>
+    <button class="btn icon" id="rShare" type="button" aria-label="Partager ce chapitre" title="Partager">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"/></svg>
+    </button>
+  </div>
+  <div id="rBody"></div>
+  <div class="rbar rbot" id="rbot">
+    <span class="rcount" id="rCount"></span>
+    <input type="range" id="rSlider" min="1" max="1" value="1" aria-label="Aller à la page">
+  </div>
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- theme ---------- */
+  var themeMode = 'auto';
+  try { var tm = localStorage.getItem('iv-theme'); if (tm === 'light' || tm === 'dark') themeMode = tm; } catch (e) {}
+  function applyTheme() {
+    var r = document.documentElement; if (themeMode === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', themeMode);
+    var b = $('themeBtn'), nm = { auto: 'automatique', light: 'clair', dark: 'sombre' };
+    b.setAttribute('data-mode', themeMode); b.setAttribute('aria-label', 'Thème : ' + nm[themeMode]);
+    try { document.querySelector('meta[name="theme-color"]').setAttribute('content', getComputedStyle(r).getPropertyValue('--bg').trim()); } catch (e) {}
+  }
+  $('themeBtn').addEventListener('click', function () {
+    themeMode = themeMode === 'auto' ? 'light' : (themeMode === 'light' ? 'dark' : 'auto');
+    try { if (themeMode === 'auto') localStorage.removeItem('iv-theme'); else localStorage.setItem('iv-theme', themeMode); } catch (e) {}
+    applyTheme();
+  });
+  applyTheme();
+
+  /* ---------- helpers ---------- */
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function pad(n, w) { n = String(n); while (n.length < w) n = '0' + n; return n; }
+  function imgUrl(ch, p) { return encodeURI(ch.dossier + '/' + pad(p, 3) + '.' + (ch.ext || 'jpg')); }
+  function getProg() { try { return JSON.parse(localStorage.getItem('iv-lire') || '{}') || {}; } catch (e) { return {}; } }
+  function setProg(sid, n, p) { try { var g = getProg(); g[sid] = { n: n, p: p, t: Date.now() }; localStorage.setItem('iv-lire', JSON.stringify(g)); } catch (e) {} }
+  function toast(t) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function () { el.hidden = true; }, 2200); }
+  function findS(id) { for (var i = 0; i < CAT.series.length; i++) if (CAT.series[i].id === id) return CAT.series[i]; return null; }
+  function findC(s, n) { for (var i = 0; i < s.chapitres.length; i++) if (String(s.chapitres[i].n) === String(n)) return s.chapitres[i]; return null; }
+
+  /* ---------- catalogue ---------- */
+  var CAT = { series: [] };
+  function loadCat() {
+    return fetch('catalogue.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : { series: [] }; }).catch(function () { return { series: [], offline: true }; }).then(function (j) {
+      CAT = j && j.series ? j : { series: [] };
+      CAT.series.forEach(function (s) { s.chapitres = (s.chapitres || []).sort(function (a, b) { return a.n - b.n; }); });
+    });
+  }
+
+  /* ---------- views ---------- */
+  var view = $('view'), chOrderDesc = false;
+  function coverHtml(s) {
+    var init = esc((s.titre || '?').charAt(0).toUpperCase());
+    return '<div class="cover"><span class="ph">' + init + '</span>' + (s.couverture ? '<img src="' + esc(encodeURI(s.couverture)) + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</div>';
+  }
+  function home() {
+    document.title = 'Inkyo Lecture';
+    if (!CAT.series.length) {
+      view.innerHTML = '<div class="empty"><h2>Rien à lire pour l\'instant</h2><p>' + (CAT.offline ? 'Le catalogue n\'a pas pu être chargé. Vérifie ta connexion.' : 'Aucune série n\'est publiée. Ajoute la première avec l\'onglet <a href="publier.html">Publier</a>.') + '</p></div>';
+      return;
+    }
+    var prog = getProg(), last = null;
+    Object.keys(prog).forEach(function (id) { if (findS(id) && (!last || prog[id].t > prog[last].t)) last = id; });
+    var h = '';
+    if (last) {
+      var s0 = findS(last), c0 = findC(s0, prog[last].n);
+      if (c0) h += '<a class="resume" href="#/r/' + esc(last) + '/' + esc(c0.n) + '/' + prog[last].p + '"><span class="lbl">Reprendre</span><strong>' + esc(s0.titre) + '</strong><span>Chapitre ' + esc(c0.n) + ', page ' + prog[last].p + '</span></a>';
+    }
+    h += '<h2 class="sec">Séries</h2><div class="grid">';
+    CAT.series.forEach(function (s) {
+      h += '<a class="card" href="#/s/' + esc(s.id) + '">' + coverHtml(s) + '<div class="ct">' + esc(s.titre) + '</div><div class="ca">' + esc(s.auteur || '') + ' · ' + (s.chapitres.length) + ' ch.</div></a>';
+    });
+    view.innerHTML = h + '</div>';
+  }
+  function seriesPage(id) {
+    var s = findS(id); if (!s) { view.innerHTML = '<div class="empty"><h2>Série introuvable</h2><p><a href="#/">Retour à la bibliothèque</a></p></div>'; return; }
+    document.title = s.titre + ' · Inkyo';
+    var prog = getProg()[s.id], chs = s.chapitres.slice(); if (chOrderDesc) chs.reverse();
+    var first = s.chapitres[0], startHref = first ? '#/r/' + esc(s.id) + '/' + esc(first.n) : '#/s/' + esc(s.id), startLbl = 'Commencer';
+    if (prog && findC(s, prog.n)) { startHref = '#/r/' + esc(s.id) + '/' + esc(prog.n) + '/' + prog.p; startLbl = 'Reprendre (ch. ' + esc(prog.n) + ', p. ' + prog.p + ')'; }
+    var h = '<a class="back" href="#/">‹ Bibliothèque</a><div class="shead">' + coverHtml(s) + '<div class="sinfo"><h1>' + esc(s.titre) + '</h1><div class="ca">' + esc(s.auteur || '') + '</div><p>' + esc(s.resume || '') + '</p>' + (first ? '<a class="btn primary" href="' + startHref + '">' + startLbl + '</a>' : '') + '</div></div>';
+    h += '<div class="row"><h2 class="sec">Chapitres</h2><button class="btn small" id="ord" type="button">' + (chOrderDesc ? 'Du dernier au premier' : 'Du premier au dernier') + '</button></div><ul class="chl">';
+    chs.forEach(function (c) {
+      var done = prog && +prog.n === +c.n;
+      h += '<li><a href="#/r/' + esc(s.id) + '/' + esc(c.n) + '"><span class="cn">' + esc(c.n) + '</span><span class="ctt">' + esc(c.titre || ('Chapitre ' + c.n)) + '<small>' + esc(c.pages) + ' pages' + (c.date ? ' · ' + esc(c.date) : '') + '</small></span>' + (done ? '<span class="dot" title="Dernière lecture"></span>' : '') + '</a></li>';
+    });
+    if (!chs.length) h += '<li class="none">Pas encore de chapitre.</li>';
+    view.innerHTML = h + '</ul>';
+    var o = $('ord'); if (o) o.addEventListener('click', function () { chOrderDesc = !chOrderDesc; seriesPage(id); });
+  }
+
+  /* ---------- reader ---------- */
+  var R = { s: null, c: null, i: 0, mode: 'page', ui: true, io: null };
+  var rBody = $('rBody');
+  function isRtl() { return R.s && R.s.sens !== 'ltr'; }
+  function closeReaderUI() {
+    $('reader').hidden = true; document.body.classList.remove('reading'); rBody.innerHTML = '';
+    if (R.io) { R.io.disconnect(); R.io = null; }
+  }
+  function openReader(sid, n, p) {
+    var s = findS(sid), c = s && findC(s, n);
+    if (!c) { closeReaderUI(); view.innerHTML = '<div class="empty"><h2>Chapitre introuvable</h2><p><a href="#/">Retour</a></p></div>'; return; }
+    R.s = s; R.c = c; R.i = Math.max(0, Math.min(c.pages - 1, (+p || 1) - 1));
+    var saved = null; try { saved = localStorage.getItem('iv-lire-mode'); } catch (e) {}
+    R.mode = saved === 'scroll' || saved === 'page' ? saved : (s.lecture === 'scroll' ? 'scroll' : 'page');
+    R.ui = true; $('reader').hidden = false; document.body.classList.add('reading');
+    $('rTitle').textContent = s.titre + ' · Ch. ' + c.n;
+    document.title = s.titre + ' ch.' + c.n + ' · Inkyo';
+    build();
+  }
+  function build() {
+    if (R.io) { R.io.disconnect(); R.io = null; }
+    $('reader').className = 'mode-' + R.mode + (R.ui ? '' : ' ui-hidden');
+    var sl = $('rSlider'); sl.max = R.c.pages; sl.style.direction = (R.mode === 'page' && isRtl()) ? 'rtl' : 'ltr';
+    if (R.mode === 'page') buildPage(); else buildScroll();
+    syncCount();
+  }
+  function syncCount() { $('rCount').textContent = (R.i + 1) + ' / ' + R.c.pages; $('rSlider').value = R.i + 1; setProg(R.s.id, R.c.n, R.i + 1); try { history.replaceState(null, '', '#/r/' + R.s.id + '/' + R.c.n + '/' + (R.i + 1)); } catch (e) {} }
+  function nextCh() { var k = R.s.chapitres.indexOf(R.c); return R.s.chapitres[k + 1] || null; }
+  function prevCh() { var k = R.s.chapitres.indexOf(R.c); return k > 0 ? R.s.chapitres[k - 1] : null; }
+  function endCard() {
+    var n = nextCh();
+    return '<div class="endcard"><h2>Fin du chapitre ' + esc(R.c.n) + '</h2>' + (n ? '<a class="btn primary" href="#/r/' + esc(R.s.id) + '/' + esc(n.n) + '">Chapitre suivant</a>' : '<p>C\'est le dernier chapitre publié pour l\'instant.</p>') + '<a class="btn" href="#/s/' + esc(R.s.id) + '">Retour à la série</a></div>';
+  }
+
+  /* page mode */
+  function buildPage() {
+    rBody.innerHTML = '<div id="pgwrap"><img id="pg" alt=""><div class="spin" id="spin">…</div></div><div id="endwrap" hidden></div>';
+    showPage();
+  }
+  function preload(i) { if (i >= 0 && i < R.c.pages) { var im = new Image(); im.src = imgUrl(R.c, i + 1); } }
+  function showPage() {
+    var pg = $('pg'), spin = $('spin'); $('endwrap').hidden = true; $('pgwrap').hidden = false;
+    spin.hidden = false; pg.style.opacity = '0.25';
+    var want = R.i;
+    pg.onload = function () { if (want === R.i) { pg.style.opacity = '1'; spin.hidden = true; } };
+    pg.onerror = function () { spin.hidden = false; spin.textContent = 'Image introuvable'; };
+    pg.alt = 'Page ' + (R.i + 1);
+    pg.src = imgUrl(R.c, R.i + 1);
+    preload(R.i + 1); preload(R.i + 2); preload(R.i - 1);
+    syncCount();
+  }
+  function showEnd() { $('pgwrap').hidden = true; var e = $('endwrap'); e.hidden = false; e.innerHTML = endCard(); $('rCount').textContent = 'Fin'; }
+  function go(d) {
+    if (R.mode !== 'page') return;
+    if (!$('endwrap').hidden) { if (d < 0) { showPage(); } return; }
+    var j = R.i + d;
+    if (j >= R.c.pages) { showEnd(); return; }
+    if (j < 0) { var pc = prevCh(); if (pc) location.hash = '#/r/' + R.s.id + '/' + pc.n + '/' + pc.pages; else toast('Début du chapitre'); return; }
+    R.i = j; showPage();
+  }
+  var pt = null;
+  $('reader').addEventListener('pointerdown', function (e) { if (R.mode !== 'page' || e.target.closest('.rbar') || e.target.closest('.endcard')) { pt = null; return; } pt = { x: e.clientX, y: e.clientY, t: Date.now() }; });
+  $('reader').addEventListener('pointerup', function (e) {
+    if (!pt) return; var dx = e.clientX - pt.x, dy = e.clientY - pt.y, dt = Date.now() - pt.t; pt = null;
+    if (window.visualViewport && window.visualViewport.scale > 1.05) return;
+    var w = window.innerWidth, rtl = isRtl();
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { var forward = rtl ? dx > 0 : dx < 0; go(forward ? 1 : -1); return; }
+    if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && dt < 500) {
+      if (e.clientX < w * 0.33) go(rtl ? 1 : -1);
+      else if (e.clientX > w * 0.67) go(rtl ? -1 : 1);
+      else { R.ui = !R.ui; $('reader').classList.toggle('ui-hidden', !R.ui); }
+    }
+  });
+  $('reader').addEventListener('pointercancel', function () { pt = null; });
+  document.addEventListener('keydown', function (e) {
+    if ($('reader').hidden) return;
+    if (e.key === 'ArrowLeft') go(isRtl() ? 1 : -1); else if (e.key === 'ArrowRight') go(isRtl() ? -1 : 1); else if (e.key === 'Escape') $('rClose').click();
+  });
+
+  /* scroll mode */
+  function buildScroll() {
+    var h = '<div id="scroll">';
+    for (var i = 0; i < R.c.pages; i++) h += '<div class="sp" data-i="' + i + '"><img alt="Page ' + (i + 1) + '" loading="lazy" decoding="async" src="' + esc(imgUrl(R.c, i + 1)) + '"></div>';
+    h += endCard() + '</div>';
+    rBody.innerHTML = h;
+    var sc = $('scroll'), pages = sc.querySelectorAll('.sp');
+    sc.querySelectorAll('img').forEach(function (im) { im.addEventListener('load', function () { im.parentNode.classList.add('ok'); if (+im.parentNode.getAttribute('data-i') === R.i && !sc._placed) { sc._placed = true; } }); });
+    var vis = {};
+    R.io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) { vis[en.target.getAttribute('data-i')] = en.isIntersecting ? en.intersectionRatio : 0; });
+      var best = -1, bi = R.i; Object.keys(vis).forEach(function (k) { if (vis[k] > best) { best = vis[k]; bi = +k; } });
+      if (best > 0 && bi !== R.i) { R.i = bi; syncCount(); }
+    }, { root: sc, threshold: [0, 0.25, 0.5, 0.75, 1] });
+    pages.forEach(function (p) { R.io.observe(p); });
+    var target = pages[R.i]; if (target) setTimeout(function () { sc.scrollTop = target.offsetTop; }, 30);
+    sc.addEventListener('click', function (e) { if (e.target.closest('.endcard')) return; R.ui = !R.ui; $('reader').classList.toggle('ui-hidden', !R.ui); });
+  }
+  $('rSlider').addEventListener('input', function () {
+    var v = +$('rSlider').value - 1;
+    if (R.mode === 'page') { R.i = v; showPage(); }
+    else { var sc = $('scroll'), t = sc && sc.querySelectorAll('.sp')[v]; if (t) sc.scrollTop = t.offsetTop; R.i = v; syncCount(); }
+  });
+  $('rMode').addEventListener('click', function () {
+    R.mode = R.mode === 'page' ? 'scroll' : 'page'; try { localStorage.setItem('iv-lire-mode', R.mode); } catch (e) {}
+    build(); toast(R.mode === 'page' ? 'Page par page' : 'Défilement vertical');
+  });
+  $('rClose').addEventListener('click', function () { location.hash = R.s ? '#/s/' + R.s.id : '#/'; });
+  $('rShare').addEventListener('click', function () {
+    var url = location.origin + location.pathname + '#/r/' + R.s.id + '/' + R.c.n;
+    if (navigator.share) navigator.share({ title: R.s.titre + ' · Chapitre ' + R.c.n, url: url }).catch(function () {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { toast('Lien copié'); }, function () { toast(url); });
+    else toast(url);
+  });
+
+  /* ---------- router ---------- */
+  function route() {
+    var parts = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
+    if (parts[0] === 'r' && parts[1] && parts[2]) {
+      if ($('reader').hidden || !R.c || R.s.id !== parts[1] || String(R.c.n) !== parts[2]) openReader(parts[1], parts[2], parts[3]);
+      else if (parts[3] && +parts[3] - 1 !== R.i && +parts[3] >= 1 && +parts[3] <= R.c.pages) { R.i = +parts[3] - 1; build(); }
+      return;
+    }
+    if (!$('reader').hidden) closeReaderUI();
+    window.scrollTo(0, 0);
+    if (parts[0] === 's' && parts[1]) seriesPage(parts[1]); else home();
+  }
+  window.addEventListener('hashchange', route);
+  loadCat().then(route);
+  window.__lire = { route: route, get CAT() { return CAT; } };
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(function () {});
+})();
+</script>
+</body>
+</html>

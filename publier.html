@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06100a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Inkyo Publier</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Poppins:wght@600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: app bar, tabs (Livre / Trames), preview stage, presets, type + motif, parameters, export bar. Same green tokens as Inkyo View. */
+:root {
+  --bg: #f1f9f3; --bg2: #ffffff; --ink: #0c2015; --muted: #4f6b5a; --line: #c9e3d1;
+  --acc: #5cf593; --acc2: #22c765; --acc-ink: #062712; --acc-text: #0b7a3b; --glow: rgba(52, 214, 110, 0.55);
+  --mark1: #46e08a; --mark2: #16b55a; --mark3: #0b8a40; --overlay: rgba(241, 249, 243, 0.84);
+  --stage: #dff2e5;
+  --f-brand: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-body: 'Zen Kaku Gothic New', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #06100a; --bg2: #0f1c14; --ink: #e9f8ee; --muted: #86a894; --line: #1d3626;
+    --acc: #7dffa6; --acc2: #2fd16a; --acc-ink: #04210f; --acc-text: #7dffa6; --glow: rgba(125, 255, 166, 0.45);
+    --mark1: #d4ffe2; --mark2: #7dffa6; --mark3: #2fd16a; --overlay: rgba(6, 16, 10, 0.8); --stage: #07110b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #06100a; --bg2: #0f1c14; --ink: #e9f8ee; --muted: #86a894; --line: #1d3626;
+  --acc: #7dffa6; --acc2: #2fd16a; --acc-ink: #04210f; --acc-text: #7dffa6; --glow: rgba(125, 255, 166, 0.45);
+  --mark1: #d4ffe2; --mark2: #7dffa6; --mark3: #2fd16a; --overlay: rgba(6, 16, 10, 0.8); --stage: #07110b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark { font-family: var(--f-brand); font-weight: 800; font-size: 24px; line-height: 0.8; letter-spacing: -0.03em; display: flex; flex-direction: column; background: linear-gradient(135deg, var(--mark1), var(--mark2) 50%, var(--mark3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.32em; color: var(--acc-text); text-transform: uppercase; padding-left: 12px; border-left: 1px solid var(--line); line-height: 1.2; }
+.btn { font: 500 14px/1 var(--f-body); min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.btn:hover:not(:disabled) { border-color: var(--acc2); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: linear-gradient(135deg, var(--acc), var(--acc2)); border-color: transparent; color: var(--acc-ink); font-weight: 700; box-shadow: 0 6px 24px -8px var(--glow); }
+.btn.icon { width: 44px; padding: 0; }
+.btn[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); font-weight: 700; }
+.btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--acc2); outline-offset: 2px; }
+#themeBtn svg { display: none; }
+#themeBtn[data-mode="auto"] .t-auto, #themeBtn[data-mode="light"] .t-light, #themeBtn[data-mode="dark"] .t-dark { display: block; }
+
+.tabs { display: flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
+.tabs a { flex: 1; text-align: center; padding: 10px 2px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 700; font-family: var(--f-brand); font-size: 13px; white-space: nowrap; }
+.tabs a[aria-current="page"] { background: linear-gradient(135deg, var(--acc), var(--acc2)); color: var(--acc-ink); }
+
+.stage { position: relative; display: flex; justify-content: center; align-items: center; border: 1px solid var(--line); border-radius: 18px; background: var(--stage); padding: 12px; overflow: hidden; }
+.paper { position: relative; background: #fff; box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45); line-height: 0; touch-action: pan-y; }
+.paper.ink-white { background: #17171b; }
+.paper.detail { touch-action: none; cursor: grab; }
+.paper canvas { display: block; width: 100%; height: 100%; }
+.busy { position: absolute; right: 10px; top: 10px; font: 11px var(--f-mono); color: var(--muted); letter-spacing: 0.1em; }
+
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.lbl { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: nowrap; }
+.seg .btn { border-radius: 0; margin-left: -1px; min-height: 40px; padding: 0 14px; }
+.seg .btn:first-child { border-radius: 12px 0 0 12px; margin-left: 0; }
+.seg .btn:last-child { border-radius: 0 12px 12px 0; }
+.seg.full { display: flex; width: 100%; }
+.seg.full .btn { flex: 1; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.chips .btn { flex: none; min-height: 38px; font-size: 13px; }
+
+.panel { border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.panel h2 { margin: 0; font-family: var(--f-brand); font-size: 15px; font-weight: 700; }
+.ctrl { display: flex; flex-direction: column; gap: 2px; }
+.ctrl .top2 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ctrl label { font-size: 14px; }
+.ctrl output { font-family: var(--f-mono); font-size: 13px; color: var(--acc-text); font-variant-numeric: tabular-nums; }
+.ctrl input[type=range] { width: 100%; accent-color: var(--acc2); margin: 0; min-height: 30px; }
+.ctrl .hint2 { font-size: 12px; color: var(--muted); }
+.sel { font: 500 15px/1.2 var(--f-body); min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.exports { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exports .wide { grid-column: 1 / -1; }
+.note { margin: 0; font-size: 13px; color: var(--muted); }
+.note.ok { color: var(--acc-text); }
+.dice { min-height: 36px; padding: 0 12px; }
+.nums { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nums input { font: 500 15px var(--f-body); min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+.verdict { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-size: 14px; }
+.verdict.good { border-color: var(--acc2); } .verdict.bad { border-color: #e0243f; }
+.pick { position: relative; display: block; } .pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+@media (max-width: 520px) { .tag { display: none; } .mark { font-size: 21px; } }
+
+textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; resize: vertical; }
+.ctrl input[type=text], .ctrl input[type=number] { font: 500 15px var(--f-body); min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.guide { border: 1px dashed var(--line); border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+.guide summary { cursor: pointer; font-weight: 700; color: var(--acc-text); }
+.guide ol { margin: 10px 0 6px; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.guide code { font-family: var(--f-mono); font-size: 12px; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+.covprev { width: 120px; border-radius: 6px; border: 1px solid var(--line); margin-top: 6px; }
+.plist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.plist li { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.plist img { width: 100%; aspect-ratio: 5 / 7; object-fit: cover; display: block; }
+.plist .pn { position: absolute; left: 4px; top: 4px; background: var(--acc); color: var(--acc-ink); font: 500 11px/1 var(--f-mono); padding: 3px 5px; border-radius: 3px; }
+.plist .pa { display: flex; }
+.plist .pa button { flex: 1; min-height: 34px; border: 0; border-top: 1px solid var(--line); background: var(--bg2); color: var(--ink); font-size: 15px; cursor: pointer; }
+.plist .pa button:disabled { opacity: .3; }
+.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--acc), var(--acc2)); transition: width .2s; }
+.pser { margin-top: 6px; font-family: var(--f-brand); }
+.prow { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.prow small { color: var(--muted); }
+</style>
+<script>try { var __t = localStorage.getItem('iv-theme'); if (__t === 'light' || __t === 'dark') document.documentElement.setAttribute('data-theme', __t); } catch (e) {}</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="mark"><span>Ink</span><span>yo</span></div><div class="tag">Publier</div></div>
+    <button class="btn icon" id="themeBtn" type="button" data-mode="auto" aria-label="Thème : automatique">
+      <svg class="t-auto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/></svg>
+      <svg class="t-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="t-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/></svg>
+    </button>
+  </header>
+  <nav class="tabs" aria-label="Outils"><a href="./">Livre</a><a href="trames.html">Trames</a><a href="planche.html">Planche</a><a href="lire.html">Lire</a><a href="publier.html" aria-current="page">Publier</a></nav>
+
+  <section class="panel">
+    <h2>1 · Connexion à ton site</h2>
+    <p class="note" id="connNote">Pour publier d'un seul bouton, l'outil a besoin d'une clé GitHub (un « jeton »). Elle reste uniquement sur ce téléphone.</p>
+    <details class="guide">
+      <summary>Comment créer le jeton (une seule fois)</summary>
+      <ol>
+        <li>Ouvre GitHub, puis ton profil (en haut) → <b>Settings</b>.</li>
+        <li>En bas du menu : <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Fine-grained tokens</b> → <b>Generate new token</b>.</li>
+        <li>Nom : « Inkyo publier ». Durée : 90 jours (ou plus).</li>
+        <li><b>Repository access</b> → <b>Only select repositories</b> → choisis <b>Inkyo-view2</b>.</li>
+        <li><b>Permissions</b> → <b>Repository permissions</b> → <b>Contents</b> → <b>Read and write</b>.</li>
+        <li><b>Generate token</b>, copie-le (il commence par <code>github_pat_</code>) et colle-le ci-dessous.</li>
+      </ol>
+      <p>Ne le partage jamais. Tu peux le supprimer sur GitHub quand tu veux.</p>
+    </details>
+    <div class="nums">
+      <div class="ctrl"><label for="own">Compte GitHub</label><input id="own" type="text" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
+      <div class="ctrl"><label for="rep">Dépôt</label><input id="rep" type="text" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <div class="ctrl"><label for="tok">Jeton</label><input id="tok" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…"></div>
+    <div class="row"><button class="btn" id="tTest" type="button">Enregistrer et tester</button><button class="btn" id="tForget" type="button">Oublier le jeton</button></div>
+    <div class="verdict" id="connRes" hidden></div>
+  </section>
+
+  <section class="panel">
+    <h2>2 · Série</h2>
+    <select class="sel" id="serSel" aria-label="Série"></select>
+    <div id="newSer" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="ctrl"><label for="sTitre">Titre de la série</label><input id="sTitre" type="text" maxlength="60"></div>
+      <div class="ctrl"><label for="sAut">Auteur</label><input id="sAut" type="text" maxlength="60"></div>
+      <div class="ctrl"><label for="sRes">Résumé</label><textarea id="sRes" rows="3" maxlength="400"></textarea></div>
+      <div class="ctrl"><label for="sSens">Sens de lecture</label><select class="sel" id="sSens"><option value="rtl">Japonais (droite vers gauche)</option><option value="ltr">Occidental (gauche vers droite)</option></select></div>
+      <div class="ctrl"><label for="sMode">Mode par défaut</label><select class="sel" id="sMode"><option value="page">Page par page</option><option value="scroll">Défilement vertical</option></select></div>
+      <div class="ctrl"><span class="lbl">Couverture</span>
+        <label class="pick"><span class="btn" id="covBtn" style="width:100%">Choisir la couverture</span><input type="file" id="cov" accept="image/*"></label>
+        <img id="covPrev" alt="" hidden class="covprev">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>3 · Chapitre</h2>
+    <div class="nums">
+      <div class="ctrl"><label for="cN">Numéro</label><input id="cN" type="number" min="0" step="1" inputmode="numeric"></div>
+      <div class="ctrl"><label for="cQ">Qualité</label><select class="sel" id="cQ"><option value="std">Standard (1400 px)</option><option value="hi">Haute (1800 px)</option><option value="lo">Légère (1000 px)</option></select></div>
+    </div>
+    <div class="ctrl"><label for="cT">Titre du chapitre</label><input id="cT" type="text" maxlength="80" placeholder="facultatif"></div>
+    <label class="pick"><span class="btn primary" style="width:100%">Ajouter les planches</span><input type="file" id="pages" accept="image/*" multiple></label>
+    <ul class="plist" id="plist"></ul>
+    <p class="note" id="plSum">Aucune planche pour l'instant. Ajoute-les dans l'ordre de lecture.</p>
+  </section>
+
+  <section class="panel">
+    <h2>4 · Publier</h2>
+    <button class="btn primary" id="pub" type="button">Publier ce chapitre</button>
+    <div class="bar" id="bar" hidden><i id="barI"></i></div>
+    <p class="note" id="pubMsg"></p>
+    <a class="btn" id="pubLink" hidden>Voir le chapitre</a>
+    <button class="btn" id="zipBtn" type="button">Sans GitHub : télécharger les fichiers (ZIP)</button>
+  </section>
+
+  <section class="panel">
+    <h2>Chapitres publiés</h2>
+    <div id="pubList"><p class="note">Chargement…</p></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var themeMode = 'auto';
+  try { var tm = localStorage.getItem('iv-theme'); if (tm === 'light' || tm === 'dark') themeMode = tm; } catch (e) {}
+  function applyTheme() {
+    var r = document.documentElement; if (themeMode === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', themeMode);
+    var b = $('themeBtn'), nm = { auto: 'automatique', light: 'clair', dark: 'sombre' };
+    b.setAttribute('data-mode', themeMode); b.setAttribute('aria-label', 'Thème : ' + nm[themeMode]);
+    try { document.querySelector('meta[name="theme-color"]').setAttribute('content', getComputedStyle(r).getPropertyValue('--bg').trim()); } catch (e) {}
+  }
+  $('themeBtn').addEventListener('click', function () {
+    themeMode = themeMode === 'auto' ? 'light' : (themeMode === 'light' ? 'dark' : 'auto');
+    try { if (themeMode === 'auto') localStorage.removeItem('iv-theme'); else localStorage.setItem('iv-theme', themeMode); } catch (e) {}
+    applyTheme();
+  });
+  applyTheme();
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function pad(n, w) { n = String(n); while (n.length < w) n = '0' + n; return n; }
+  function slug(t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'serie'; }
+
+  /* ---------- connection ---------- */
+  var T = { owner: '', repo: '', token: '' };
+  (function () {
+    try { var sv = JSON.parse(localStorage.getItem('iv-pub') || 'null'); if (sv) { T.owner = sv.owner || ''; T.repo = sv.repo || ''; T.token = sv.token || ''; } } catch (e) {}
+    if (!T.owner && /\.github\.io$/.test(location.hostname)) { T.owner = location.hostname.split('.')[0]; T.repo = location.pathname.split('/').filter(Boolean)[0] || ''; }
+    $('own').value = T.owner; $('rep').value = T.repo; $('tok').value = T.token;
+  })();
+  function saveConn() { T.owner = $('own').value.trim(); T.repo = $('rep').value.trim(); T.token = $('tok').value.trim(); try { localStorage.setItem('iv-pub', JSON.stringify(T)); } catch (e) {} }
+  function gh(method, path, body, accept) {
+    var h = { Authorization: 'Bearer ' + T.token, Accept: accept || 'application/vnd.github+json' };
+    if (body) h['Content-Type'] = 'application/json';
+    return fetch('https://api.github.com' + path, { method: method, headers: h, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }).then(function (r) {
+      if (!r.ok) return r.text().then(function (t) { var m = ''; try { m = JSON.parse(t).message; } catch (e) { m = t; } var er = new Error(r.status + ' ' + m); er.status = r.status; throw er; });
+      return accept ? r.text() : (r.status === 204 ? null : r.json());
+    });
+  }
+  function explain(e) {
+    if (e.status === 401) return 'Jeton refusé (mauvais ou expiré). Recrée-en un.';
+    if (e.status === 403 || e.status === 404) return 'GitHub refuse l\'accès. Vérifie le nom du compte et du dépôt, et que le jeton a « Contents : Read and write » sur ce dépôt.';
+    if (e.status === 409 || e.status === 422) return 'GitHub a refusé la mise à jour (' + e.message + '). Réessaie dans un instant.';
+    return 'Erreur : ' + e.message + '. Vérifie ta connexion.';
+  }
+  function connMsg(t, good) { var el = $('connRes'); el.hidden = false; el.className = 'verdict ' + (good ? 'good' : 'bad'); el.textContent = t; }
+  $('tTest').addEventListener('click', function () {
+    saveConn(); if (!T.owner || !T.repo || !T.token) { connMsg('Remplis le compte, le dépôt et le jeton.', false); return; }
+    connMsg('Test en cours…', true);
+    gh('GET', '/repos/' + T.owner + '/' + T.repo).then(function (r) {
+      if (r.permissions && !r.permissions.push) connMsg('Connexion OK mais le jeton n\'a pas le droit d\'écrire. Ajoute « Contents : Read and write ».', false);
+      else connMsg('Connecté à ' + r.full_name + ' (branche ' + r.default_branch + '). Tu peux publier.', true);
+    }, function (e) { connMsg(explain(e), false); });
+  });
+  $('tForget').addEventListener('click', function () { T.token = ''; $('tok').value = ''; try { localStorage.setItem('iv-pub', JSON.stringify(T)); } catch (e) {} connMsg('Jeton oublié sur ce téléphone.', true); });
+
+  /* ---------- catalogue (live site) ---------- */
+  var CAT = { series: [] };
+  function fetchSiteCat() {
+    return fetch('catalogue.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : { series: [] }; }).catch(function () { return { series: [] }; }).then(function (j) { return j && j.series ? j : { series: [] }; });
+  }
+  function refreshCat() {
+    return fetchSiteCat().then(function (j) { CAT = j; drawSeriesSel(); drawPubList(); });
+  }
+  function drawSeriesSel(want) {
+    var sel = $('serSel'), cur = want || sel.value; sel.innerHTML = '';
+    CAT.series.forEach(function (s) { var o = document.createElement('option'); o.value = s.id; o.textContent = s.titre; sel.appendChild(o); });
+    var o2 = document.createElement('option'); o2.value = '__new'; o2.textContent = '+ Nouvelle série'; sel.appendChild(o2);
+    sel.value = cur && sel.querySelector('option[value="' + cur + '"]') ? cur : (CAT.series.length ? CAT.series[0].id : '__new');
+    onSeries();
+  }
+  function curSeries() { var id = $('serSel').value; for (var i = 0; i < CAT.series.length; i++) if (CAT.series[i].id === id) return CAT.series[i]; return null; }
+  function onSeries() {
+    var isNew = $('serSel').value === '__new'; $('newSer').hidden = !isNew; $('newSer').style.display = isNew ? 'flex' : 'none';
+    var s = curSeries(), mx = 0; if (s) s.chapitres.forEach(function (c) { if (+c.n > mx) mx = +c.n; });
+    $('cN').value = mx + 1;
+  }
+  $('serSel').addEventListener('change', onSeries);
+
+  /* ---------- images ---------- */
+  var coverBlob = null, pages = []; /* pages: {file, url} */
+  var QUAL = { std: [1400, 0.85], hi: [1800, 0.88], lo: [1000, 0.8] };
+  function loadImg(file) {
+    return new Promise(function (ok, ko) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () { ok({ im: im, url: url }); }; im.onerror = function () { URL.revokeObjectURL(url); ko(new Error('Image illisible : ' + (file.name || '?'))); }; im.src = url;
+    });
+  }
+  function toJpeg(file, maxW, q) {
+    return loadImg(file).then(function (o) {
+      var im = o.im, w = im.naturalWidth, h = im.naturalHeight, k = Math.min(1, maxW / w), cw = Math.round(w * k), ch = Math.round(h * k), c = document.createElement('canvas');
+      c.width = cw; c.height = ch; var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, cw, ch); x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, cw, ch);
+      return new Promise(function (ok, ko) { c.toBlob(function (b) { URL.revokeObjectURL(o.url); b ? ok(b) : ko(new Error('Conversion impossible')); }, 'image/jpeg', q); });
+    });
+  }
+  $('cov').addEventListener('change', function () {
+    var f = $('cov').files[0]; if (!f) return;
+    toJpeg(f, 700, 0.85).then(function (b) { coverBlob = b; var p = $('covPrev'); p.src = URL.createObjectURL(b); p.hidden = false; $('covBtn').textContent = 'Changer la couverture'; }, function (e) { alert(e.message); });
+  });
+  $('pages').addEventListener('change', function () {
+    Array.prototype.forEach.call($('pages').files, function (f) { pages.push({ file: f, url: URL.createObjectURL(f) }); });
+    $('pages').value = ''; drawPages();
+  });
+  function drawPages() {
+    var ul = $('plist'); ul.innerHTML = '';
+    pages.forEach(function (p, i) {
+      var li = document.createElement('li');
+      li.innerHTML = '<img src="' + p.url + '" alt=""><span class="pn">' + (i + 1) + '</span><span class="pa"><button type="button" aria-label="Monter" ' + (i === 0 ? 'disabled' : '') + '>↑</button><button type="button" aria-label="Descendre" ' + (i === pages.length - 1 ? 'disabled' : '') + '>↓</button><button type="button" aria-label="Retirer">✕</button></span>';
+      var bs = li.querySelectorAll('button');
+      bs[0].addEventListener('click', function () { var t = pages[i - 1]; pages[i - 1] = pages[i]; pages[i] = t; drawPages(); });
+      bs[1].addEventListener('click', function () { var t = pages[i + 1]; pages[i + 1] = pages[i]; pages[i] = t; drawPages(); });
+      bs[2].addEventListener('click', function () { URL.revokeObjectURL(p.url); pages.splice(i, 1); drawPages(); });
+      ul.appendChild(li);
+    });
+    var tot = 0; pages.forEach(function (p) { tot += p.file.size; });
+    $('plSum').textContent = pages.length ? pages.length + ' planche' + (pages.length > 1 ? 's' : '') + ' (originaux : ' + (tot / 1048576).toFixed(1) + ' Mo, plus léger une fois optimisé).' : 'Aucune planche pour l\'instant. Ajoute-les dans l\'ordre de lecture.';
+  }
+
+  /* ---------- build the publication ---------- */
+  function say(t, bad) { var m = $('pubMsg'); m.textContent = t; m.className = 'note' + (bad ? '' : ' ok'); }
+  function prog(f) { $('bar').hidden = false; $('barI').style.width = Math.round(f * 100) + '%'; }
+  function collect() {
+    var isNew = $('serSel').value === '__new', s, chN = parseInt($('cN').value, 10);
+    if (isNaN(chN) || chN < 0) throw new Error('Mets un numéro de chapitre.');
+    if (!pages.length) throw new Error('Ajoute au moins une planche.');
+    if (isNew) {
+      var titre = $('sTitre').value.trim(); if (!titre) throw new Error('Donne un titre à la série.');
+      var id = slug(titre), base = id, k = 2; while (CAT.series.some(function (x) { return x.id === id; })) id = base + '-' + (k++);
+      s = { id: id, titre: titre, auteur: $('sAut').value.trim(), resume: $('sRes').value.trim(), sens: $('sSens').value, lecture: $('sMode').value, couverture: coverBlob ? 'serie/' + id + '/cover.jpg' : '', chapitres: [] };
+    } else s = curSeries();
+    return { s: s, isNew: isNew, n: chN, titre: $('cT').value.trim() };
+  }
+  function makeFiles(info, cb) {
+    var q = QUAL[$('cQ').value] || QUAL.std, files = [], i = 0, dir = 'serie/' + info.s.id + '/ch' + pad(info.n, 3);
+    function next() {
+      if (i >= pages.length) { done(); return; }
+      toJpeg(pages[i].file, q[0], q[1]).then(function (b) { files.push({ path: dir + '/' + pad(i + 1, 3) + '.jpg', blob: b }); i++; cb(i / (pages.length + 1)); next(); }, function (e) { cb(-1, e); });
+    }
+    function done() {
+      if (info.isNew && coverBlob) files.push({ path: 'serie/' + info.s.id + '/cover.jpg', blob: coverBlob });
+      cb(1, null, files, dir);
+    }
+    next();
+  }
+  function newCatalogue(base, info, dir) {
+    var cat = JSON.parse(JSON.stringify(base && base.series ? base : { series: [] })), s = null;
+    cat.series.forEach(function (x) { if (x.id === info.s.id) s = x; });
+    if (!s) { s = JSON.parse(JSON.stringify(info.s)); s.chapitres = []; cat.series.push(s); }
+    var ch = { n: info.n, titre: info.titre, dossier: dir, pages: pages.length, ext: 'jpg', date: new Date().toISOString().slice(0, 10) };
+    s.chapitres = s.chapitres.filter(function (c) { return +c.n !== info.n; }); s.chapitres.push(ch); s.chapitres.sort(function (a, b) { return a.n - b.n; });
+    return cat;
+  }
+
+  /* ---------- GitHub commit (one commit, many files) ---------- */
+  function b64(buf) { var u = new Uint8Array(buf), s = '', CH = 0x8000; for (var i = 0; i < u.length; i += CH) s += String.fromCharCode.apply(null, u.subarray(i, i + CH)); return btoa(s); }
+  function blobToB64(b) { return b.arrayBuffer().then(b64); }
+  function repoPath() { return '/repos/' + T.owner + '/' + T.repo; }
+  function commitFiles(files, message, onProg) {
+    var R = repoPath(), branch, parent, baseTree, n = 0, total = files.length + 4;
+    function tick() { n++; onProg(Math.min(0.99, 0.5 + 0.5 * n / total)); }
+    return gh('GET', R).then(function (r) { branch = r.default_branch; tick(); return gh('GET', R + '/git/ref/heads/' + branch); })
+      .then(function (ref) { parent = ref.object.sha; tick(); return gh('GET', R + '/git/commits/' + parent); })
+      .then(function (c) { baseTree = c.tree.sha; tick(); var entries = [], p = Promise.resolve();
+        files.forEach(function (f) {
+          p = p.then(function () { return f.text != null ? { content: f.text, encoding: 'utf-8' } : blobToB64(f.blob).then(function (x) { return { content: x, encoding: 'base64' }; }); })
+            .then(function (body) { return gh('POST', R + '/git/blobs', body); })
+            .then(function (b) { entries.push({ path: f.path, mode: '100644', type: 'blob', sha: b.sha }); tick(); });
+        });
+        return p.then(function () { return entries; }); })
+      .then(function (entries) { return gh('POST', R + '/git/trees', { base_tree: baseTree, tree: entries }); })
+      .then(function (t) { return gh('POST', R + '/git/commits', { message: message, tree: t.sha, parents: [parent] }); })
+      .then(function (c) { return gh('PATCH', R + '/git/refs/heads/' + branch, { sha: c.sha }); });
+  }
+  function liveCatalogue() {
+    return gh('GET', repoPath() + '/contents/catalogue.json', null, 'application/vnd.github.raw+json').then(function (t) { return JSON.parse(t); }, function (e) { if (e.status === 404) return { series: [] }; throw e; });
+  }
+
+  var busy = false;
+  $('pub').addEventListener('click', function () {
+    if (busy) return; saveConn();
+    var info; try { info = collect(); } catch (e) { say(e.message, true); return; }
+    if (!T.owner || !T.repo || !T.token) { say('Connecte d\'abord ton site (étape 1).', true); return; }
+    var exists = info.s.chapitres && info.s.chapitres.some(function (c) { return +c.n === info.n; });
+    if (exists && !confirm('Le chapitre ' + info.n + ' existe déjà. Le remplacer ?')) return;
+    busy = true; $('pub').disabled = true; $('pubLink').hidden = true; say('Préparation des images…'); prog(0.02);
+    makeFiles(info, function (f, err, files, dir) {
+      if (err) { say(err.message, true); busy = false; $('pub').disabled = false; return; }
+      if (f < 1) { prog(f * 0.5); return; }
+      say('Envoi vers GitHub…');
+      liveCatalogue().then(function (base) {
+        var cat = newCatalogue(base, info, dir); files.push({ path: 'catalogue.json', text: JSON.stringify(cat, null, 1) });
+        return commitFiles(files, 'Publier ' + info.s.titre + ' ch. ' + info.n, prog).then(function () { return cat; });
+      }).then(function (cat) {
+        prog(1); say('Publié. GitHub met le site à jour : le chapitre apparaît dans environ 1 à 2 minutes.');
+        var a = $('pubLink'); a.href = 'lire.html#/r/' + encodeURIComponent(info.s.id) + '/' + info.n; a.hidden = false;
+        pages.forEach(function (p) { URL.revokeObjectURL(p.url); }); pages = []; drawPages(); coverBlob = null; $('covPrev').hidden = true;
+        CAT = cat; drawSeriesSel(info.s.id); drawPubList(); $('cT').value = ''; $('sTitre').value = ''; $('sAut').value = ''; $('sRes').value = '';
+      }).catch(function (e) { say(explain(e), true); }).then(function () { busy = false; $('pub').disabled = false; });
+    });
+  });
+
+  /* ---------- ZIP fallback ---------- */
+  var CRC = (function () { var t = []; for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u) { var c = 0xFFFFFFFF; for (var i = 0; i < u.length; i++) c = CRC[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function zip(entries) { /* entries: [{path, data:Uint8Array}] store only */
+    var enc = new TextEncoder(), parts = [], central = [], off = 0;
+    function u16(v) { return [v & 255, (v >>> 8) & 255]; } function u32(v) { return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; }
+    entries.forEach(function (e) {
+      var nm = enc.encode(e.path), crc = crc32(e.data), sz = e.data.length;
+      var lh = new Uint8Array([0x50, 0x4b, 3, 4].concat(u16(20), u16(0x0800), u16(0), u16(0), u16(0x21), u32(crc), u32(sz), u32(sz), u16(nm.length), u16(0)));
+      parts.push(lh, nm, e.data);
+      central.push(new Uint8Array([0x50, 0x4b, 1, 2].concat(u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0x21), u32(crc), u32(sz), u32(sz), u16(nm.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(off))), nm);
+      off += lh.length + nm.length + sz;
+    });
+    var cs = 0; central.forEach(function (c) { cs += c.length; });
+    var end = new Uint8Array([0x50, 0x4b, 5, 6].concat(u16(0), u16(0), u16(entries.length), u16(entries.length), u32(cs), u32(off), u16(0)));
+    return new Blob(parts.concat(central, [end]), { type: 'application/zip' });
+  }
+  $('zipBtn').addEventListener('click', function () {
+    if (busy) return; var info; try { info = collect(); } catch (e) { say(e.message, true); return; }
+    busy = true; say('Préparation des images…'); prog(0.02);
+    makeFiles(info, function (f, err, files, dir) {
+      if (err) { say(err.message, true); busy = false; return; }
+      if (f < 1) { prog(f); return; }
+      fetchSiteCat().then(function (base) {
+        var cat = newCatalogue(base, info, dir), enc = new TextEncoder(), ents = [{ path: 'catalogue.json', data: enc.encode(JSON.stringify(cat, null, 1)) }], p = Promise.resolve();
+        files.forEach(function (fl) { p = p.then(function () { return fl.blob.arrayBuffer(); }).then(function (ab) { ents.push({ path: fl.path, data: new Uint8Array(ab) }); }); });
+        return p.then(function () { return ents; });
+      }).then(function (ents) {
+        var b = zip(ents), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'inkyo-' + info.s.id + '-ch' + pad(info.n, 3) + '.zip'; document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000); prog(1);
+        say('ZIP prêt. Décompresse-le puis envoie son contenu dans le dépôt GitHub (dossier « serie » et catalogue.json).');
+      }).catch(function (e) { say(e.message, true); }).then(function () { busy = false; });
+    });
+  });
+
+  /* ---------- published list ---------- */
+  function drawPubList() {
+    var box = $('pubList'); box.innerHTML = '';
+    if (!CAT.series.length) { box.innerHTML = '<p class="note">Aucune série publiée pour l\'instant.</p>'; return; }
+    CAT.series.forEach(function (s) {
+      var h = document.createElement('div'); h.className = 'pser'; h.innerHTML = '<b>' + esc(s.titre) + '</b>'; box.appendChild(h);
+      s.chapitres.forEach(function (c) {
+        var r = document.createElement('div'); r.className = 'prow';
+        r.innerHTML = '<span>Ch. ' + esc(c.n) + (c.titre ? ' · ' + esc(c.titre) : '') + ' <small>' + esc(c.pages) + ' p.</small></span><span><a class="btn small" href="lire.html#/r/' + encodeURIComponent(s.id) + '/' + encodeURIComponent(c.n) + '">Lire</a> <button class="btn small" type="button">Retirer</button></span>';
+        r.querySelector('button').addEventListener('click', function () {
+          if (!T.token) { say('Connecte ton site pour retirer un chapitre.', true); return; }
+          if (!confirm('Retirer le chapitre ' + c.n + ' de « ' + s.titre + ' » du catalogue ? Les images restent sur GitHub.')) return;
+          saveConn(); say('Mise à jour du catalogue…');
+          liveCatalogue().then(function (cat) {
+            cat.series.forEach(function (x) { if (x.id === s.id) x.chapitres = x.chapitres.filter(function (k) { return +k.n !== +c.n; }); });
+            cat.series = cat.series.filter(function (x) { return x.chapitres.length || x.id !== s.id; });
+            return commitFiles([{ path: 'catalogue.json', text: JSON.stringify(cat, null, 1) }], 'Retirer ' + s.titre + ' ch. ' + c.n, function () {}).then(function () { CAT = cat; });
+          }).then(function () { say('Chapitre retiré. Le site se met à jour dans 1 à 2 minutes.'); drawSeriesSel(); drawPubList(); }, function (e) { say(explain(e), true); });
+        });
+        box.appendChild(r);
+      });
+    });
+  }
+  refreshCat();
+  window.__pub = { get CAT() { return CAT; }, zip: zip };
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(function () {});
+})();
+</script>
+</body>
+</html>
