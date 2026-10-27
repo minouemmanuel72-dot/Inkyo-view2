@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06100a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Inkyo Trames</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Poppins:wght@600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: app bar, tabs (Livre / Trames), preview stage, presets, type + motif, parameters, export bar. Same green tokens as Inkyo View. */
+:root {
+  --bg: #f1f9f3; --bg2: #ffffff; --ink: #0c2015; --muted: #4f6b5a; --line: #c9e3d1;
+  --acc: #5cf593; --acc2: #22c765; --acc-ink: #062712; --acc-text: #0b7a3b; --glow: rgba(52, 214, 110, 0.55);
+  --mark1: #46e08a; --mark2: #16b55a; --mark3: #0b8a40; --overlay: rgba(241, 249, 243, 0.84);
+  --stage: #dff2e5;
+  --f-brand: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-body: 'Zen Kaku Gothic New', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #06100a; --bg2: #0f1c14; --ink: #e9f8ee; --muted: #86a894; --line: #1d3626;
+    --acc: #7dffa6; --acc2: #2fd16a; --acc-ink: #04210f; --acc-text: #7dffa6; --glow: rgba(125, 255, 166, 0.45);
+    --mark1: #d4ffe2; --mark2: #7dffa6; --mark3: #2fd16a; --overlay: rgba(6, 16, 10, 0.8); --stage: #07110b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #06100a; --bg2: #0f1c14; --ink: #e9f8ee; --muted: #86a894; --line: #1d3626;
+  --acc: #7dffa6; --acc2: #2fd16a; --acc-ink: #04210f; --acc-text: #7dffa6; --glow: rgba(125, 255, 166, 0.45);
+  --mark1: #d4ffe2; --mark2: #7dffa6; --mark3: #2fd16a; --overlay: rgba(6, 16, 10, 0.8); --stage: #07110b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark { font-family: var(--f-brand); font-weight: 800; font-size: 24px; line-height: 0.8; letter-spacing: -0.03em; display: flex; flex-direction: column; background: linear-gradient(135deg, var(--mark1), var(--mark2) 50%, var(--mark3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.32em; color: var(--acc-text); text-transform: uppercase; padding-left: 12px; border-left: 1px solid var(--line); line-height: 1.2; }
+.btn { font: 500 14px/1 var(--f-body); min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.btn:hover:not(:disabled) { border-color: var(--acc2); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: linear-gradient(135deg, var(--acc), var(--acc2)); border-color: transparent; color: var(--acc-ink); font-weight: 700; box-shadow: 0 6px 24px -8px var(--glow); }
+.btn.icon { width: 44px; padding: 0; }
+.btn[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); font-weight: 700; }
+.btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--acc2); outline-offset: 2px; }
+#themeBtn svg { display: none; }
+#themeBtn[data-mode="auto"] .t-auto, #themeBtn[data-mode="light"] .t-light, #themeBtn[data-mode="dark"] .t-dark { display: block; }
+
+.tabs { display: flex; gap: 6px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
+.tabs a { flex: 1; text-align: center; padding: 10px 8px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 700; font-family: var(--f-brand); font-size: 14px; }
+.tabs a[aria-current="page"] { background: linear-gradient(135deg, var(--acc), var(--acc2)); color: var(--acc-ink); }
+
+.stage { position: relative; display: flex; justify-content: center; align-items: center; border: 1px solid var(--line); border-radius: 18px; background: var(--stage); padding: 12px; overflow: hidden; }
+.paper { position: relative; background: #fff; box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45); line-height: 0; touch-action: pan-y; }
+.paper.ink-white { background: #17171b; }
+.paper.detail { touch-action: none; cursor: grab; }
+.paper canvas { display: block; width: 100%; height: 100%; }
+.busy { position: absolute; right: 10px; top: 10px; font: 11px var(--f-mono); color: var(--muted); letter-spacing: 0.1em; }
+
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.lbl { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: nowrap; }
+.seg .btn { border-radius: 0; margin-left: -1px; min-height: 40px; padding: 0 14px; }
+.seg .btn:first-child { border-radius: 12px 0 0 12px; margin-left: 0; }
+.seg .btn:last-child { border-radius: 0 12px 12px 0; }
+.seg.full { display: flex; width: 100%; }
+.seg.full .btn { flex: 1; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.chips .btn { flex: none; min-height: 38px; font-size: 13px; }
+
+.panel { border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.panel h2 { margin: 0; font-family: var(--f-brand); font-size: 15px; font-weight: 700; }
+.ctrl { display: flex; flex-direction: column; gap: 2px; }
+.ctrl .top2 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ctrl label { font-size: 14px; }
+.ctrl output { font-family: var(--f-mono); font-size: 13px; color: var(--acc-text); font-variant-numeric: tabular-nums; }
+.ctrl input[type=range] { width: 100%; accent-color: var(--acc2); margin: 0; min-height: 30px; }
+.ctrl .hint2 { font-size: 12px; color: var(--muted); }
+.sel { font: 500 15px/1.2 var(--f-body); min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.exports { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exports .wide { grid-column: 1 / -1; }
+.note { margin: 0; font-size: 13px; color: var(--muted); }
+.note.ok { color: var(--acc-text); }
+.dice { min-height: 36px; padding: 0 12px; }
+@media (max-width: 520px) { .tag { display: none; } .mark { font-size: 21px; } }
+</style>
+<script>try { var __t = localStorage.getItem('iv-theme'); if (__t === 'light' || __t === 'dark') document.documentElement.setAttribute('data-theme', __t); } catch (e) {}</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="mark"><span>Ink</span><span>yo</span></div><div class="tag">Trames</div></div>
+    <button class="btn icon" id="themeBtn" type="button" data-mode="auto" aria-label="Thème : automatique">
+      <svg class="t-auto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/></svg>
+      <svg class="t-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="t-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/></svg>
+    </button>
+  </header>
+  <nav class="tabs" aria-label="Outils"><a href="./">Livre</a><a href="trames.html" aria-current="page">Trames</a><a href="planche.html">Planche</a></nav>
+
+  <div class="stage" id="stage"><div class="paper" id="paper"><canvas id="cv"></canvas></div><div class="busy" id="busy" hidden>calcul…</div></div>
+
+  <div class="row">
+    <div class="seg" role="group" aria-label="Vue"><button class="btn" id="vOver" aria-pressed="true" type="button">Ensemble</button><button class="btn" id="vDet" aria-pressed="false" type="button">Détail 1:1</button></div>
+    <span class="lbl" id="dim"></span>
+  </div>
+
+  <div><div class="lbl" style="margin-bottom:6px">Préréglages</div><div class="chips" id="presets"></div></div>
+
+  <section class="panel">
+    <h2>Type de trame</h2>
+    <div class="seg full" id="segType" role="group" aria-label="Type"></div>
+    <div id="motifBox" style="display:flex;flex-direction:column;gap:14px"><div class="lbl">Motif</div>
+    <div class="seg full" id="segMotif" role="group" aria-label="Motif"></div></div>
+    <div id="ctrls" style="display:flex;flex-direction:column;gap:14px"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Mes trames</h2>
+    <button class="btn" id="saveMine" type="button">Enregistrer ces réglages</button>
+    <div class="chips" id="mine"></div>
+    <p class="note" id="mineNote">Tes trames préférées, gardées sur ce téléphone.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Exporter</h2>
+    <div class="ctrl"><div class="top2"><label for="fmt">Format</label></div><select class="sel" id="fmt"></select></div>
+    <div class="row"><span class="lbl">Encre</span><div class="seg"><button class="btn" id="inkB" type="button" aria-pressed="true">Noire</button><button class="btn" id="inkW" type="button" aria-pressed="false">Blanche</button></div></div>
+    <div class="row"><span class="lbl">Fond</span><div class="seg"><button class="btn" id="bgT" type="button" aria-pressed="true">Transparent</button><button class="btn" id="bgO" type="button" aria-pressed="false">Opaque</button></div></div>
+    <div class="exports">
+      <button class="btn primary wide" id="dl" type="button">Télécharger le PNG</button>
+      <button class="btn" id="share" type="button">Partager</button>
+      <button class="btn" id="rnd" type="button">Au hasard</button>
+    </div>
+    <p class="note" id="msg">PNG transparent : pose-le en calque au-dessus de ton dessin dans ton appli de dessin.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- theme (shared with Inkyo View) ---------- */
+  var themeMode = 'auto';
+  try { var tm = localStorage.getItem('iv-theme'); if (tm === 'light' || tm === 'dark') themeMode = tm; } catch (e) {}
+  function applyTheme() {
+    var r = document.documentElement; if (themeMode === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', themeMode);
+    var b = $('themeBtn'), nm = { auto: 'automatique', light: 'clair', dark: 'sombre' };
+    b.setAttribute('data-mode', themeMode); b.setAttribute('aria-label', 'Thème : ' + nm[themeMode]);
+    try { var tc = document.querySelector('meta[name="theme-color"]'); tc.setAttribute('content', getComputedStyle(r).getPropertyValue('--bg').trim()); } catch (e) {}
+  }
+  $('themeBtn').addEventListener('click', function () {
+    themeMode = themeMode === 'auto' ? 'light' : (themeMode === 'light' ? 'dark' : 'auto');
+    try { if (themeMode === 'auto') localStorage.removeItem('iv-theme'); else localStorage.setItem('iv-theme', themeMode); } catch (e) {}
+    applyTheme();
+  });
+  applyTheme();
+
+  /* ---------- noise ---------- */
+  function hash(ix, iy, seed) {
+    var h = Math.imul(ix, 374761393) + Math.imul(iy, 668265263) + Math.imul(seed, 1442695041);
+    h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+    return (h >>> 0) / 4294967295;
+  }
+  function vnoise(x, y, seed) {
+    var ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
+    var ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    var a = hash(ix, iy, seed), b = hash(ix + 1, iy, seed), c = hash(ix, iy + 1, seed), d = hash(ix + 1, iy + 1, seed);
+    return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+  }
+  function fbm(x, y, seed) {
+    var s = 0, amp = 0.5, f = 1, n = 0;
+    for (var o = 0; o < 5; o++) { s += amp * vnoise(x * f, y * f, seed + o * 17); n += amp; amp *= 0.5; f *= 2.03; }
+    return s / n;
+  }
+  function sstep(a, b, x) { var t = (x - a) / (b - a); t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t); }
+  function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+
+  /* ---------- state ---------- */
+  var FORMATS = [
+    { id: 'sq2000', n: 'Carré 2000 px', w: 2000, h: 2000 },
+    { id: 'sq1200', n: 'Carré 1200 px (léger)', w: 1200, h: 1200 },
+    { id: 'a5', n: 'A5 portrait 300 dpi (1748×2480)', w: 1748, h: 2480 },
+    { id: 'b5', n: 'B5 portrait 300 dpi (2150×3035)', w: 2150, h: 3035 },
+    { id: 'a5l', n: 'A5 paysage 300 dpi (2480×1748)', w: 2480, h: 1748 },
+    { id: 'band', n: 'Bandeau 3000×1000', w: 3000, h: 1000 }
+  ];
+  var DEF = {
+    type: 'dots', motif: 'dot', fmt: 'sq2000',
+    tone: 50, angle: 45, pitch: 16,
+    gKind: 'lin', gAngle: 90, t0: 5, t1: 85, gGamma: 100, gRad: 70,
+    top: 80, hor: 4, skyGamma: 130, cloudAmt: 45, cloudSize: 40, cloudSoft: 14, stretch: 250, cloudBias: 40, cloudTone: 0, seed: 7, stars: 0,
+    grainGrad: 0, spdKind: 'rad', spdN: 90, spdIn: 22, spdW: 40, spdJit: 60, spdAng: 0,
+    inkWhite: false, whiteBg: false
+  };
+  var S = {};
+  (function () { for (var k in DEF) S[k] = DEF[k]; try { var sv = JSON.parse(localStorage.getItem('iv-trames') || 'null'); if (sv) for (var k2 in DEF) if (sv[k2] !== undefined) S[k2] = sv[k2]; } catch (e) {} })();
+  function save() { try { localStorage.setItem('iv-trames', JSON.stringify(S)); } catch (e) {} }
+
+  var TYPES = [{ id: 'dots', n: 'Points' }, { id: 'grad', n: 'Dégradé' }, { id: 'sky', n: 'Ciel' }, { id: 'grain', n: 'Grain' }, { id: 'speed', n: 'Vitesse' }];
+  var MOTIFS = [{ id: 'dot', n: 'Points' }, { id: 'line', n: 'Lignes' }, { id: 'cross', n: 'Croisé' }, { id: 'sq', n: 'Carrés' }];
+
+  /* controls: key, label, min, max, step, unit, show(S) */
+  var CTRL = [
+    { k: 'tone', l: 'Densité (encre)', min: 2, max: 100, u: '%', show: function (s) { return s.type === 'dots' || s.type === 'grain'; } },
+    { k: 'grainGrad', l: 'Dégradé du haut vers le bas', min: 0, max: 100, u: '%', h: '0 = grain régulier. 100 = le grain disparaît en bas.', show: function (s) { return s.type === 'grain'; } },
+    { k: 'pitch', l: 'Finesse : écart entre points', min: 4, max: 60, u: ' px', h: 'Plus petit = trame plus fine.', show: function (s) { return s.type !== 'speed'; } },
+    { k: 'angle', l: 'Angle de la trame', min: 0, max: 90, u: '°', show: function (s) { return s.type !== 'speed' && s.type !== 'grain'; } },
+    { k: 'spdKind', seg: [['rad', 'Concentration'], ['par', 'Parallèles']], l: 'Lignes de vitesse', show: function (s) { return s.type === 'speed'; } },
+    { k: 'spdN', l: 'Nombre de lignes', min: 10, max: 300, u: '', show: function (s) { return s.type === 'speed'; } },
+    { k: 'spdIn', l: 'Zone libre au centre', min: 0, max: 80, u: '%', show: function (s) { return s.type === 'speed'; } },
+    { k: 'spdW', l: 'Épaisseur des lignes', min: 5, max: 100, u: '%', show: function (s) { return s.type === 'speed'; } },
+    { k: 'spdJit', l: 'Irrégularité', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'speed'; } },
+    { k: 'spdAng', l: 'Direction (0° = horizontal)', min: 0, max: 179, u: '°', show: function (s) { return s.type === 'speed' && s.spdKind === 'par'; } },
+    { k: 'gKind', seg: [['lin', 'Linéaire'], ['rad', 'Radial']], l: 'Forme du dégradé', show: function (s) { return s.type === 'grad'; } },
+    { k: 'gAngle', l: 'Direction (90° = vers le bas)', min: 0, max: 359, u: '°', show: function (s) { return s.type === 'grad' && s.gKind === 'lin'; } },
+    { k: 'gRad', l: 'Rayon', min: 20, max: 150, u: '%', show: function (s) { return s.type === 'grad' && s.gKind === 'rad'; } },
+    { k: 't0', l: 'Densité au départ', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'grad'; } },
+    { k: 't1', l: 'Densité à l\'arrivée', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'grad'; } },
+    { k: 'gGamma', l: 'Courbe du dégradé', min: 30, max: 300, u: '', h: '100 = régulier. Plus haut : le noir reste longtemps léger.', show: function (s) { return s.type === 'grad'; } },
+    { k: 'top', l: 'Haut du ciel', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'sky'; } },
+    { k: 'hor', l: 'Horizon', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'sky'; } },
+    { k: 'skyGamma', l: 'Courbe du ciel', min: 40, max: 300, u: '', show: function (s) { return s.type === 'sky'; } },
+    { k: 'cloudAmt', l: 'Quantité de nuages', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'sky'; } },
+    { k: 'cloudSize', l: 'Taille des nuages', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'sky' && s.cloudAmt > 0; } },
+    { k: 'cloudSoft', l: 'Douceur des bords', min: 1, max: 100, u: '%', show: function (s) { return s.type === 'sky' && s.cloudAmt > 0; } },
+    { k: 'stretch', l: 'Étirement horizontal', min: 100, max: 800, u: '%', show: function (s) { return s.type === 'sky' && s.cloudAmt > 0; } },
+    { k: 'cloudBias', l: 'Nuages vers l\'horizon', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'sky' && s.cloudAmt > 0; } },
+    { k: 'cloudTone', l: 'Densité dans les nuages', min: 0, max: 60, u: '%', h: '0 = nuages blancs.', show: function (s) { return s.type === 'sky' && s.cloudAmt > 0; } },
+    { k: 'stars', l: 'Étoiles', min: 0, max: 100, u: '%', show: function (s) { return s.type === 'sky'; } },
+    { k: 'seed', l: 'Forme des nuages (graine)', min: 1, max: 200, u: '', dice: true, show: function (s) { return s.type === 'sky' || s.type === 'speed' || s.type === 'grain'; } }
+  ];
+
+  /* ---------- tone fields ---------- */
+  function makeTone(W, H) {
+    var f;
+    if (S.type === 'dots') { var t = S.tone / 100; f = function () { return t; }; f.c = true; return f; }
+    if (S.type === 'grain') { var gt = S.tone / 100, gg = S.grainGrad / 100; f = function (x, y) { return gt * (1 - gg * clamp01(y / H)); }; if (gg === 0) f.c = true; return f; }
+    if (S.type === 'speed') return function () { return 1; };
+    if (S.type === 'grad') {
+      var t0 = S.t0 / 100, t1 = S.t1 / 100, g = S.gGamma / 100, cx = W / 2, cy = H / 2;
+      if (S.gKind === 'lin') {
+        var a = S.gAngle * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), L = Math.abs(W * ca) + Math.abs(H * sa) || 1;
+        return function (x, y) { var u = clamp01(((x - cx) * ca + (y - cy) * sa) / L + 0.5); return t0 + (t1 - t0) * Math.pow(u, g); };
+      }
+      var R = Math.hypot(W, H) / 2 * S.gRad / 100 || 1;
+      return function (x, y) { var u = clamp01(Math.hypot(x - cx, y - cy) / R); return t0 + (t1 - t0) * Math.pow(u, g); };
+    }
+    var top = S.top / 100, hor = S.hor / 100, sg = S.skyGamma / 100, amt = S.cloudAmt / 100, soft = 0.01 + S.cloudSoft / 100 * 0.24;
+    var sc = W * (0.04 + 0.5 * S.cloudSize / 100), sx = sc * S.stretch / 100, sy = sc, bias = S.cloudBias / 100, ct = S.cloudTone / 100, seed = S.seed | 0;
+    return function (x, y) {
+      var yn = clamp01(y / H), base = top + (hor - top) * Math.pow(yn, sg);
+      if (amt <= 0) return base;
+      var n = fbm(x / sx + 11.3, y / sy + 5.7, seed), th = 0.8 - amt * 0.45 - bias * (yn - 0.5) * 0.28;
+      var c = sstep(th - soft, th + soft, n);
+      return base + (ct - base) * c;
+    };
+  }
+  function radius(t, p) {
+    if (t <= 0.7854) return p * Math.sqrt(t / Math.PI);
+    return p * (0.5 + (t - 0.7854) / 0.2146 * 0.2072);
+  }
+
+  /* ---------- drawing ---------- */
+  function uvRange(view, cx, cy, ca, sa, pad) {
+    var xs = [view.x - pad, view.x + view.w + pad], ys = [view.y - pad, view.y + view.h + pad], r = [1e9, -1e9, 1e9, -1e9];
+    for (var i = 0; i < 2; i++) for (var j = 0; j < 2; j++) {
+      var u = (xs[i] - cx) * ca + (ys[j] - cy) * sa, v = -(xs[i] - cx) * sa + (ys[j] - cy) * ca;
+      if (u < r[0]) r[0] = u; if (u > r[1]) r[1] = u; if (v < r[2]) r[2] = v; if (v > r[3]) r[3] = v;
+    }
+    return r;
+  }
+  function drawDots(ctx, W, H, view, tone, p, deg, sq) {
+    var a = deg * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), cx = W / 2, cy = H / 2;
+    var rg = uvRange(view, cx, cy, ca, sa, p), i0 = Math.floor(rg[0] / p), i1 = Math.ceil(rg[1] / p), j0 = Math.floor(rg[2] / p), j1 = Math.ceil(rg[3] / p);
+    var x0 = view.x - p, y0 = view.y - p, x1 = view.x + view.w + p, y1 = view.y + view.h + p, n = 0;
+    ctx.beginPath();
+    for (var j = j0; j <= j1; j++) for (var i = i0; i <= i1; i++) {
+      var u = i * p, v = j * p, x = cx + u * ca - v * sa, y = cy + u * sa + v * ca;
+      if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+      var t = tone(x, y); if (t <= 0.004) continue;
+      if (sq) {
+        var h2 = p * Math.sqrt(t > 1 ? 1 : t) / 2 + (t >= 0.98 ? 0.6 : 0); if (h2 * view.k < 0.12) continue;
+        var ax = ca * h2, ay = sa * h2, bx = -sa * h2, by = ca * h2;
+        ctx.moveTo(x - ax - bx, y - ay - by); ctx.lineTo(x + ax - bx, y + ay - by); ctx.lineTo(x + ax + bx, y + ay + by); ctx.lineTo(x - ax + bx, y - ay + by); ctx.closePath();
+      } else {
+        var r = radius(t > 1 ? 1 : t, p); if (r * view.k < 0.12) continue;
+        ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.2832);
+      }
+      if (++n >= 4000) { ctx.fill(); ctx.beginPath(); n = 0; }
+    }
+    ctx.fill();
+  }
+  function drawLines(ctx, W, H, view, tone, p, deg, adj) {
+    var a = deg * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), cx = W / 2, cy = H / 2;
+    var rg = uvRange(view, cx, cy, ca, sa, p), j0 = Math.floor(rg[2] / p), j1 = Math.ceil(rg[3] / p), u0 = rg[0], u1 = rg[1];
+    var st = tone.c ? (u1 - u0) + 4 : Math.max(2, p / 3), pts = [], k, u;
+    for (var j = j0; j <= j1; j++) {
+      var v = j * p, top = [], bot = [], any = false;
+      for (u = u0; ; u += st) {
+        if (u > u1) u = u1;
+        var x = cx + u * ca - v * sa, y = cy + u * sa + v * ca, t = adj(clamp01(tone(x, y))), w = p * t;
+        if (t > 0.004) any = true;
+        top.push(u, v - w / 2); bot.push(u, v + w / 2);
+        if (u >= u1) break;
+      }
+      if (!any) continue;
+      ctx.beginPath();
+      for (k = 0; k < top.length; k += 2) { var uu = top[k], vv = top[k + 1]; var px = cx + uu * ca - vv * sa, py = cy + uu * sa + vv * ca; if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
+      for (k = bot.length - 2; k >= 0; k -= 2) { var u2 = bot[k], v2 = bot[k + 1]; ctx.lineTo(cx + u2 * ca - v2 * sa, cy + u2 * sa + v2 * ca); }
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  function drawGrain(ctx, W, H, view, tone) {
+    var cell = S.pitch * 0.55, seed = (S.seed | 0) + 211, i0 = Math.floor(view.x / cell) - 1, i1 = Math.ceil((view.x + view.w) / cell) + 1, j0 = Math.floor(view.y / cell) - 1, j1 = Math.ceil((view.y + view.h) / cell) + 1, n = 0;
+    ctx.beginPath();
+    for (var j = j0; j <= j1; j++) for (var i = i0; i <= i1; i++) {
+      var x = (i + hash(i, j, seed)) * cell, y = (j + hash(i, j, seed + 1)) * cell, t = tone(x, y);
+      if (hash(i, j, seed + 2) > t / 0.9) continue;
+      var r = S.pitch * 0.3 * (0.7 + 0.6 * hash(i, j, seed + 3)); if (r * view.k < 0.12) continue;
+      ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.2832);
+      if (++n >= 4000) { ctx.fill(); ctx.beginPath(); n = 0; }
+    }
+    ctx.fill();
+  }
+  function tri(ctx, ax, ay, bx, by, cx2, cy2) { ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(cx2, cy2); ctx.closePath(); ctx.fill(); }
+  function drawSpeed(ctx, W, H) {
+    var N = S.spdN, jit = S.spdJit / 100, wd = S.spdW / 100, zin = S.spdIn / 100, seed = (S.seed | 0) + 307, D = Math.hypot(W, H) / 2, cx = W / 2, cy = H / 2, i;
+    if (S.spdKind === 'rad') {
+      for (i = 0; i < N; i++) {
+        var h1 = hash(i, 1, seed), h2 = hash(i, 2, seed), h3 = hash(i, 3, seed);
+        var th = 2 * Math.PI * (i + (h1 - 0.5) * jit) / N, ang = (Math.PI / N) * (0.15 + 1.7 * wd * (1 - jit * 0.6 + jit * 0.6 * h2)), tip = D * zin * (1 - jit * 0.35 + jit * 0.5 * h3), R = D * 1.4;
+        tri(ctx, cx + Math.cos(th) * tip, cy + Math.sin(th) * tip, cx + Math.cos(th - ang) * R, cy + Math.sin(th - ang) * R, cx + Math.cos(th + ang) * R, cy + Math.sin(th + ang) * R);
+      }
+    } else {
+      var a = S.spdAng * Math.PI / 180, dx = Math.cos(a), dy = Math.sin(a), nx = -dy, ny = dx, E = Math.abs(W * dy) + Math.abs(H * dx), sp = E / N;
+      for (i = 0; i < N; i++) {
+        var g1 = hash(i, 1, seed), g2 = hash(i, 2, seed), g3 = hash(i, 3, seed), g4 = hash(i, 4, seed);
+        var o = -E / 2 + (i + 0.5 + (g1 - 0.5) * jit) * sp, hw = sp * 0.5 * (0.12 + 1.5 * wd * (1 - jit * 0.6 + jit * 0.6 * g2)), L = D * 1.4;
+        var zl = D * zin * (1 - jit * 0.35 + jit * 0.5 * g3), zr = D * zin * (1 - jit * 0.35 + jit * 0.5 * g4);
+        var bx = cx + nx * o, by = cy + ny * o;
+        tri(ctx, bx - dx * zl, by - dy * zl, bx - dx * L + nx * hw, by - dy * L + ny * hw, bx - dx * L - nx * hw, by - dy * L - ny * hw);
+        tri(ctx, bx + dx * zr, by + dy * zr, bx + dx * L + nx * hw, by + dy * L + ny * hw, bx + dx * L - nx * hw, by + dy * L - ny * hw);
+      }
+    }
+  }
+  function drawStars(ctx, W, H, view, tone) {
+    var dens = S.stars / 100; if (dens <= 0) return;
+    var cs = Math.max(24, W * 0.02), seed = (S.seed | 0) + 101, pr = dens * 0.4, p = S.pitch;
+    var i0 = Math.floor(view.x / cs) - 1, i1 = Math.ceil((view.x + view.w) / cs) + 1, j0 = Math.floor(view.y / cs) - 1, j1 = Math.ceil((view.y + view.h) / cs) + 1;
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000';
+    for (var j = j0; j <= j1; j++) for (var i = i0; i <= i1; i++) {
+      if (hash(i, j, seed) > pr) continue;
+      var x = (i + hash(i, j, seed + 1)) * cs, y = (j + hash(i, j, seed + 2)) * cs;
+      if (x < 0 || x > W || y < 0 || y > H || tone(x, y) < 0.3) continue;
+      var r = p * (0.45 + 0.55 * hash(i, j, seed + 3));
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  function render(cv, W, H, view) {
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(view.k, 0, 0, view.k, -view.x * view.k, -view.y * view.k);
+    ctx.fillStyle = S.inkWhite ? '#ffffff' : '#000000';
+    var tone = makeTone(W, H), p = S.pitch, an = S.angle;
+    if (S.type === 'speed') { drawSpeed(ctx, W, H); return; }
+    if (S.type === 'grain') { drawGrain(ctx, W, H, view, tone); return; }
+    if (S.motif === 'dot') drawDots(ctx, W, H, view, tone, p, an);
+    else if (S.motif === 'sq') drawDots(ctx, W, H, view, tone, p, an, true);
+    else if (S.motif === 'line') drawLines(ctx, W, H, view, tone, p, an, function (t) { return t; });
+    else {
+      var adj = function (t) { return 1 - Math.sqrt(1 - t); };
+      drawLines(ctx, W, H, view, tone, p, an, adj); drawLines(ctx, W, H, view, tone, p, an + 90, adj);
+    }
+    if (S.type === 'sky') drawStars(ctx, W, H, view, tone);
+  }
+
+  /* ---------- preview ---------- */
+  var cv = $('cv'), paper = $('paper'), stage = $('stage');
+  var detail = false, pan = { x: null, y: null }, dprv = Math.min(window.devicePixelRatio || 1, 2.5);
+  function fmt() { for (var i = 0; i < FORMATS.length; i++) if (FORMATS[i].id === S.fmt) return FORMATS[i]; return FORMATS[0]; }
+  var queued = false;
+  function draw() { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; paint(); }); }
+  function paint() {
+    var F = fmt(), W = F.w, H = F.h, availW = stage.clientWidth - 24, maxH = Math.max(320, window.innerHeight * 0.66);
+    var cssW, cssH;
+    if (detail) { cssW = availW; cssH = Math.min(maxH, availW * 1.05); }
+    else { var asp = W / H; cssW = Math.min(availW, maxH * asp); cssH = cssW / asp; }
+    cssW = Math.floor(cssW); cssH = Math.floor(cssH);
+    paper.style.width = cssW + 'px'; paper.style.height = cssH + 'px';
+    cv.width = Math.round(cssW * dprv); cv.height = Math.round(cssH * dprv);
+    paper.classList.toggle('ink-white', !!S.inkWhite); paper.classList.toggle('detail', detail);
+    var view;
+    if (detail) {
+      if (pan.x === null) { pan.x = W / 2; pan.y = H / 2; }
+      var vw = cssW, vh = cssH;
+      pan.x = Math.max(vw / 2, Math.min(W - vw / 2, pan.x)); pan.y = Math.max(vh / 2, Math.min(H - vh / 2, pan.y));
+      view = { x: pan.x - vw / 2, y: pan.y - vh / 2, w: vw, h: vh, k: dprv };
+    } else view = { x: 0, y: 0, w: W, h: H, k: cv.width / W };
+    var t0 = performance.now();
+    render(cv, W, H, view);
+    $('dim').textContent = W + ' × ' + H + ' px';
+    var ms = performance.now() - t0; $('busy').hidden = true; void ms;
+  }
+  window.addEventListener('resize', draw);
+
+  var drag = null;
+  paper.addEventListener('pointerdown', function (e) { if (!detail) return; drag = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }; try { paper.setPointerCapture(e.pointerId); } catch (er) {} });
+  paper.addEventListener('pointermove', function (e) { if (!drag) return; pan.x = drag.px - (e.clientX - drag.x); pan.y = drag.py - (e.clientY - drag.y); draw(); });
+  paper.addEventListener('pointerup', function () { drag = null; });
+  paper.addEventListener('pointercancel', function () { drag = null; });
+  function setDetail(d) { detail = d; $('vOver').setAttribute('aria-pressed', String(!d)); $('vDet').setAttribute('aria-pressed', String(d)); draw(); }
+  $('vOver').addEventListener('click', function () { setDetail(false); });
+  $('vDet').addEventListener('click', function () { setDetail(true); });
+
+  /* ---------- UI build ---------- */
+  function segBuild(el, items, key) {
+    el.innerHTML = '';
+    items.forEach(function (it) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = it.n || it[1]; var id = it.id || it[0];
+      b.setAttribute('aria-pressed', String(S[key] === id));
+      b.addEventListener('click', function () { S[key] = id; save(); refreshUI(); draw(); });
+      el.appendChild(b);
+    });
+  }
+  var ctrlEls = {};
+  function buildCtrls() {
+    var box = $('ctrls'); box.innerHTML = ''; ctrlEls = {};
+    CTRL.forEach(function (c) {
+      var d = document.createElement('div'); d.className = 'ctrl';
+      if (c.seg) {
+        var lab = document.createElement('div'); lab.className = 'lbl'; lab.textContent = c.l; d.appendChild(lab);
+        var sg = document.createElement('div'); sg.className = 'seg full'; d.appendChild(sg); d._seg = { el: sg, c: c };
+      } else {
+        var id = 'c_' + c.k;
+        d.innerHTML = '<div class="top2"><label for="' + id + '">' + c.l + '</label><output id="o_' + id + '"></output></div><input id="' + id + '" type="range" min="' + c.min + '" max="' + c.max + '" step="1">' + (c.h ? '<div class="hint2">' + c.h + '</div>' : '');
+        var inp = d.querySelector('input'), out = d.querySelector('output');
+        inp.addEventListener('input', function () { S[c.k] = +inp.value; out.textContent = inp.value + c.u; if (c.k === 'cloudAmt') refreshUI(); save(); draw(); });
+        d._inp = inp; d._out = out;
+        if (c.dice) { var dice = document.createElement('button'); dice.type = 'button'; dice.className = 'btn dice'; dice.textContent = 'Nouvelle forme'; dice.addEventListener('click', function () { S.seed = 1 + Math.floor(Math.random() * 200); refreshUI(); save(); draw(); }); d.appendChild(dice); }
+      }
+      d._c = c; box.appendChild(d);
+    });
+  }
+  function refreshUI() {
+    segBuild($('segType'), TYPES, 'type'); segBuild($('segMotif'), MOTIFS, 'motif');
+    Array.prototype.forEach.call($('ctrls').children, function (d) {
+      var c = d._c; d.hidden = !c.show(S);
+      if (d._seg) segBuild(d._seg.el, c.seg.map(function (a) { return { id: a[0], n: a[1] }; }), c.k);
+      else { d._inp.value = S[c.k]; d._out.textContent = S[c.k] + c.u; }
+    });
+    $('motifBox').hidden = (S.type === 'grain' || S.type === 'speed');
+    $('inkB').setAttribute('aria-pressed', String(!S.inkWhite)); $('inkW').setAttribute('aria-pressed', String(S.inkWhite));
+    $('bgT').setAttribute('aria-pressed', String(!S.whiteBg)); $('bgO').setAttribute('aria-pressed', String(S.whiteBg));
+    $('fmt').value = S.fmt;
+  }
+  FORMATS.forEach(function (f) { var o = document.createElement('option'); o.value = f.id; o.textContent = f.n; $('fmt').appendChild(o); });
+  $('fmt').addEventListener('change', function () { S.fmt = $('fmt').value; pan.x = null; save(); draw(); });
+  $('inkB').addEventListener('click', function () { S.inkWhite = false; save(); refreshUI(); draw(); });
+  $('inkW').addEventListener('click', function () { S.inkWhite = true; save(); refreshUI(); draw(); });
+  $('bgT').addEventListener('click', function () { S.whiteBg = false; save(); refreshUI(); });
+  $('bgO').addEventListener('click', function () { S.whiteBg = true; save(); refreshUI(); });
+
+  /* ---------- presets ---------- */
+  var PRESETS = [
+    { n: 'Trame 30 %', v: { type: 'dots', motif: 'dot', tone: 30, angle: 45, pitch: 14 } },
+    { n: 'Trame 60 %', v: { type: 'dots', motif: 'dot', tone: 60, angle: 45, pitch: 14 } },
+    { n: 'Trame fine 20 %', v: { type: 'dots', motif: 'dot', tone: 20, angle: 45, pitch: 8 } },
+    { n: 'Dégradé vertical', v: { type: 'grad', motif: 'dot', gKind: 'lin', gAngle: 90, t0: 5, t1: 85, gGamma: 100, pitch: 14, angle: 45 } },
+    { n: 'Dégradé radial', v: { type: 'grad', motif: 'dot', gKind: 'rad', gRad: 70, t0: 0, t1: 90, gGamma: 100, pitch: 14, angle: 45 } },
+    { n: 'Ciel de jour', v: { type: 'sky', motif: 'dot', top: 40, hor: 0, skyGamma: 120, cloudAmt: 45, cloudSize: 40, cloudSoft: 14, stretch: 250, cloudBias: 40, cloudTone: 0, stars: 0, pitch: 14, angle: 45 } },
+    { n: 'Ciel nuageux', v: { type: 'sky', motif: 'dot', top: 70, hor: 10, skyGamma: 110, cloudAmt: 75, cloudSize: 30, cloudSoft: 22, stretch: 300, cloudBias: 50, cloudTone: 8, stars: 0, pitch: 12, angle: 45 } },
+    { n: 'Ciel de nuit', v: { type: 'sky', motif: 'dot', top: 95, hor: 25, skyGamma: 130, cloudAmt: 20, cloudSize: 45, cloudSoft: 20, stretch: 300, cloudBias: 60, cloudTone: 20, stars: 55, pitch: 12, angle: 45 } },
+    { n: 'Grain léger', v: { type: 'grain', tone: 25, grainGrad: 0, pitch: 10 } },
+    { n: 'Grain dense', v: { type: 'grain', tone: 70, grainGrad: 0, pitch: 8 } },
+    { n: 'Ombre en grain', v: { type: 'grain', tone: 80, grainGrad: 100, pitch: 10 } },
+    { n: 'Concentration', v: { type: 'speed', spdKind: 'rad', spdN: 120, spdIn: 22, spdW: 40, spdJit: 60 } },
+    { n: 'Vitesse parallèle', v: { type: 'speed', spdKind: 'par', spdAng: 0, spdN: 70, spdIn: 15, spdW: 35, spdJit: 70 } },
+    { n: 'Lignes de vent', v: { type: 'grad', motif: 'line', gKind: 'lin', gAngle: 0, t0: 0, t1: 70, gGamma: 100, pitch: 14, angle: 0 } }
+  ];
+  PRESETS.forEach(function (p) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = p.n;
+    b.addEventListener('click', function () { for (var k in p.v) S[k] = p.v[k]; save(); refreshUI(); draw(); });
+    $('presets').appendChild(b);
+  });
+  $('rnd').addEventListener('click', function () {
+    S.seed = 1 + Math.floor(Math.random() * 200); S.type = 'sky'; S.cloudAmt = 30 + Math.floor(Math.random() * 55); S.cloudSize = 25 + Math.floor(Math.random() * 40);
+    S.cloudSoft = 8 + Math.floor(Math.random() * 25); S.top = 30 + Math.floor(Math.random() * 65); S.hor = Math.floor(Math.random() * 25);
+    save(); refreshUI(); draw();
+  });
+
+  /* ---------- mes trames ---------- */
+  var LIB = [];
+  try { LIB = JSON.parse(localStorage.getItem('iv-trames-lib') || '[]') || []; } catch (e) { LIB = []; }
+  function saveLib() { try { localStorage.setItem('iv-trames-lib', JSON.stringify(LIB)); } catch (e) {} }
+  function drawLib() {
+    var box = $('mine'); box.innerHTML = '';
+    LIB.forEach(function (it, idx) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = it.n;
+      b.addEventListener('click', function () { for (var k in DEF) if (it.v[k] !== undefined) S[k] = it.v[k]; save(); refreshUI(); draw(); });
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'btn icon'; x.style.minHeight = '38px'; x.textContent = '✕'; x.setAttribute('aria-label', 'Supprimer ' + it.n);
+      x.addEventListener('click', function () { if (confirm('Supprimer « ' + it.n + ' » ?')) { LIB.splice(idx, 1); saveLib(); drawLib(); } });
+      box.appendChild(b); box.appendChild(x);
+    });
+    $('mineNote').hidden = LIB.length > 0;
+  }
+  $('saveMine').addEventListener('click', function () {
+    var n = window.prompt('Nom de cette trame :', 'Ma trame ' + (LIB.length + 1)); if (!n) return;
+    var v = {}; for (var k in DEF) v[k] = S[k]; LIB.push({ n: n.slice(0, 30), v: v }); saveLib(); drawLib();
+  });
+  drawLib();
+
+  /* ---------- export ---------- */
+  function say(t, ok) { var m = $('msg'); m.textContent = t; m.className = 'note' + (ok ? ' ok' : ''); }
+  function makeBlob(cb) {
+    var F = fmt(), c = document.createElement('canvas'); c.width = F.w; c.height = F.h;
+    var ctx = c.getContext('2d'); if (S.whiteBg) { ctx.fillStyle = S.inkWhite ? '#000' : '#fff'; ctx.fillRect(0, 0, F.w, F.h); }
+    var tmp = document.createElement('canvas'); tmp.width = F.w; tmp.height = F.h;
+    render(tmp, F.w, F.h, { x: 0, y: 0, w: F.w, h: F.h, k: 1 });
+    ctx.drawImage(tmp, 0, 0);
+    c.toBlob(function (b) { cb(b); }, 'image/png');
+  }
+  function fname() { return 'trame-' + S.type + '-' + S.motif + '-p' + S.pitch + '.png'; }
+  $('dl').addEventListener('click', function () {
+    say('Création du PNG…');
+    setTimeout(function () {
+      makeBlob(function (b) {
+        if (!b) { say('Le PNG n\'a pas pu être créé (format trop grand pour ce téléphone). Choisis un format plus petit.'); return; }
+        var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = fname(); document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        say('PNG prêt : ' + fname() + ' (' + Math.round(b.size / 1024) + ' Ko). Regarde dans tes téléchargements.', true);
+      });
+    }, 30);
+  });
+  $('share').addEventListener('click', function () {
+    say('Création du PNG…');
+    setTimeout(function () {
+      makeBlob(function (b) {
+        if (!b) { say('Le PNG n\'a pas pu être créé. Choisis un format plus petit.'); return; }
+        var f = new File([b], fname(), { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: 'Trame Inkyo' }).then(function () { say('Partagé.', true); }, function () { say('Partage annulé.'); });
+        else say('Le partage n\'est pas disponible ici : utilise « Télécharger le PNG ».');
+      });
+    }, 30);
+  });
+
+  buildCtrls(); refreshUI(); paint();
+  window.__tr = { S: S, render: render, setDetail: setDetail, refresh: function () { refreshUI(); draw(); } };
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(function () {});
+})();
+</script>
+</body>
+</html>
