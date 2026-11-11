@@ -213,7 +213,17 @@ body.dragging .stage { outline: 2px dashed var(--acc2); outline-offset: -6px; }
 .tabs { display: flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
 .tabs a { flex: 1; text-align: center; padding: 10px 2px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 700; font-family: var(--f-brand); font-size: 13px; white-space: nowrap; }
 .tabs a[aria-current="page"] { background: linear-gradient(135deg, var(--acc), var(--acc2)); color: var(--acc-ink); }
-body.immersive .tabs { display: none; }
+body.immersive .tabs, body.immersive .projbar { display: none; }
+#projChips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; }
+.chip { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 5px 14px 5px 5px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg2); color: var(--ink); font: 500 13px var(--f-body); cursor: pointer; }
+.chip img, .chip .ph { width: 30px; height: 42px; object-fit: cover; border-radius: 4px; background: var(--line); flex: none; display: block; }
+.chip .cn { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; min-width: 0; text-align: left; }
+.chip .cn b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+.chip .cn small { color: var(--muted); font-size: 11px; }
+.chip[aria-pressed="true"] { border-color: var(--acc2); box-shadow: 0 0 0 2px var(--acc); }
+.chip.add { padding: 0 16px; color: var(--acc-text); font-weight: 700; border-style: dashed; }
+a.btn { text-decoration: none; }
+.chip:focus-visible { outline: 2px solid var(--acc2); outline-offset: 2px; }
 .exit { display: none; }
 body.immersive { overflow: hidden; }
 body.immersive .top, body.immersive .opts, body.immersive .tray, body.immersive .note, body.immersive .foot, body.immersive .panel { display: none; }
@@ -271,6 +281,7 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
     </div>
   </header>
   <nav class="tabs" aria-label="Outils"><a href="./" aria-current="page">Livre</a><a href="trames.html">Trames</a><a href="planche.html">Planche</a><a href="lire.html">Lire</a><a href="publier.html">Publier</a></nav>
+  <section class="projbar" aria-label="Mes projets"><div id="projChips"></div></section>
 
   <p class="note msg" id="msg" role="status" hidden></p>
   <p class="note" id="note">Planches d'exemple. Importe les tiennes pour voir ton livre imprimé, ou glisse-les ici.</p>
@@ -324,6 +335,21 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
     </div>
   </section>
 
+  <details class="panel" id="projPanel">
+    <summary>Mes projets</summary>
+    <div class="body">
+      <p class="help">Chaque projet garde ses propres planches et sa propre maquette (dos, 4e de couverture). Tu peux en avoir autant que tu veux et passer de l'un à l'autre sans rien supprimer.</p>
+      <div class="grid"><div class="field"><label for="pName">Nom du projet</label><input id="pName" type="text" maxlength="40" autocomplete="off"></div></div>
+      <div class="inline">
+        <button class="btn small" id="pNew" type="button">Nouveau projet</button>
+        <button class="btn small" id="pDup" type="button">Dupliquer</button>
+        <button class="btn small" id="pDel" type="button">Supprimer</button>
+        <a class="btn small primary" id="pSend" href="publier.html">Envoyer vers Lire</a>
+      </div>
+      <p class="help" id="pInfo"></p>
+    </div>
+  </details>
+
   <details class="panel" id="mockPanel">
     <summary>Maquette d'impression : dos et 4e de couverture</summary>
     <div class="body">
@@ -357,11 +383,14 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
   <details class="panel" id="vidPanel">
     <summary>Vidéo</summary>
     <div class="body">
-      <p class="help">Enregistre ton livre en vidéo, avec le son des pages. Le tour automatique ouvre la couverture et feuillette les premières pages. En mode manuel, tu tournes le livre toi-même.</p>
+      <p class="help">Enregistre ton livre en vidéo, avec le son des pages. Le <b>tour complet</b> feuillette tout le livre, le ferme, puis le fait tourner pour montrer le dos et la 4e de couverture. Le <b>tour rapide</b> n'ouvre que les premières pages. À la main, tu tournes le livre toi-même : jusqu'à 5 minutes.</p>
       <div class="inline">
-        <button class="btn primary" id="tourBtn" type="button">Tour automatique</button>
+        <button class="btn primary" id="tourFull" type="button">Tour complet</button>
+        <button class="btn" id="tourBtn" type="button">Tour rapide</button>
         <button class="btn" id="recBtn" type="button">Enregistrer à la main</button>
       </div>
+      <div class="grid"><div class="field"><label for="tourSpeed">Vitesse du tour</label><select id="tourSpeed"><option value="2600">Lente</option><option value="1800" selected>Normale</option><option value="1100">Rapide</option></select></div></div>
+      <p class="help" id="tourInfo"></p>
       <div class="result" id="result" hidden>
         <video id="vid" controls playsinline></video>
         <div class="inline">
@@ -628,6 +657,7 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
     mode: 'read', auto: false,
     meta: { title: 'MON MANGA', author: 'AUTEUR', vol: '1', bg: '#06140c', fg: '#7dffa6', writing: 'rot', width: 113, paper: 0.09, printed: 192, printedSet: false, back: null, spine: null }
   };
+  var META_DEF = JSON.parse(JSON.stringify(state.meta));
   var P = [], L = 0, ph = FMT_RATIO_DEFAULT, sU = -1, tz = 0.001, Tb = 0.1, cb = 0.003, Hw = 0.1, modelZc = 0.05;
   var pr = [], anim = [], leaves = {}, blockL, blockR, board, wall, shL, shR;
   var mock = { spineTex: null, backTex: null, edgeU: null, edgeV: null, shadowTex: null };
@@ -685,15 +715,49 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
     });
   }
   function idbPut(k, v) { idb().then(function (db) { var s = db.transaction('kv', 'readwrite').objectStore('kv'); if (v === null) s.delete(k); else s.put(v, k); }).catch(function () {}); }
-  var saveT;
-  function saveSettings() {
-    clearTimeout(saveT);
-    saveT = setTimeout(function () {
-      idbPut('settings', { rtl: state.rtl, cover: state.cover, sound: state.sound, flipped: state.flipped, sample: state.sample });
-      var mm = Object.assign({}, state.meta); delete mm.spineImg; delete mm.backImg; idbPut('meta', mm);
-    }, 300);
+  function idbSet(obj) {
+    return idb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction('kv', 'readwrite'), st = tx.objectStore('kv');
+        Object.keys(obj).forEach(function (k) { if (obj[k] === null || obj[k] === undefined) st.delete(k); else st.put(obj[k], k); });
+        tx.oncomplete = function () { res(); }; tx.onerror = tx.onabort = function () { rej(tx.error); };
+      });
+    });
   }
-  function saveImgs() { idbPut('imgs', state.sample ? null : state.imgs); saveSettings(); }
+  var PRJ = { list: [], cur: null }, thumbDirty = false;
+  function pk(s) { return 'p:' + PRJ.cur + ':' + s; }
+  function curEntry() { for (var i = 0; i < PRJ.list.length; i++) if (PRJ.list[i].id === PRJ.cur) return PRJ.list[i]; return null; }
+  function makeThumb(src) {
+    return new Promise(function (res) {
+      var im = new Image();
+      im.onload = function () { try { var h = 84, w = Math.max(20, Math.round(h * im.naturalWidth / im.naturalHeight)), c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h); res(c.toDataURL('image/jpeg', 0.7)); } catch (e) { res(null); } };
+      im.onerror = function () { res(null); }; im.src = src;
+    });
+  }
+  function refreshThumb() {
+    var e = curEntry(); if (!e) return;
+    if (state.sample || !state.imgs.length) { e.thumb = null; e.n = 0; e.sample = true; drawProjBar(); return; }
+    e.n = state.imgs.length; e.sample = false;
+    if (!thumbDirty && e.thumb) { drawProjBar(); return; }
+    thumbDirty = false; var id = e.id;
+    makeThumb(state.imgs[0].src).then(function (t) { var e2 = curEntry(); if (e2 && e2.id === id) { e2.thumb = t; idbSet({ projects: PRJ.list }).catch(function () {}); drawProjBar(); } });
+    drawProjBar();
+  }
+  var saveT;
+  function metaForSave() { var mm = Object.assign({}, state.meta); delete mm.spineImg; delete mm.backImg; return mm; }
+  function flushSave() {
+    clearTimeout(saveT);
+    if (!PRJ.cur) return Promise.resolve();
+    var o = {}; o[pk('settings')] = { rtl: state.rtl, cover: state.cover, sound: state.sound, flipped: state.flipped, sample: state.sample }; o[pk('meta')] = metaForSave();
+    var e = curEntry(); if (e) { e.updated = Date.now(); e.n = state.sample ? 0 : state.imgs.length; e.sample = state.sample; }
+    o.projects = PRJ.list;
+    return idbSet(o).catch(function () {});
+  }
+  function saveSettings() { clearTimeout(saveT); saveT = setTimeout(flushSave, 300); }
+  function saveImgs() {
+    if (PRJ.cur) { var o = {}; o[pk('imgs')] = state.sample ? null : state.imgs; idbSet(o).catch(function () {}); }
+    thumbDirty = true; saveSettings(); refreshThumb();
+  }
 
   /* ---------- example pages ---------- */
   function rng(seed) {
@@ -1283,6 +1347,7 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
     for (var i = 0; i < L; i++) { pr[i] = i < state.flipped ? 1 : 0; anim[i] = null; }
     shiftNow = targetShift(); widthNow = targetWidth();
     updateChrome(); syncModel(true); invalidate();
+    if (typeof updateTourInfo === 'function') updateTourInfo();
   }
   function moveBy(k, d) { var arr = state.imgs, j = k + d; if (j < 0 || j >= arr.length) return; var t = arr[k]; arr[k] = arr[j]; arr[j] = t; rebuild(true); saveImgs(); }
   function removeAt(k) {
@@ -1537,7 +1602,7 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
   /* =====================================================================
      Video recording
      ===================================================================== */
-  var recState = { mr: null, chunks: [], stream: null, mime: '', t0: 0, timer: null, tour: [], blob: null, url: null };
+  var recState = { mr: null, chunks: [], stream: null, mime: '', t0: 0, timer: null, tour: [], blob: null, url: null, limit: 300000, wl: null };
   function pickMime(withAudio) {
     if (!window.MediaRecorder) return '';
     var c = withAudio
@@ -1547,8 +1612,9 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
     return '';
   }
   function fmtT(s) { s = Math.floor(s); return ('0' + Math.floor(s / 60)).slice(-2) + ':' + ('0' + (s % 60)).slice(-2); }
-  function startRec() {
+  function startRec(limitMs) {
     if (rec.on) return false;
+    recState.limit = limitMs || 300000;
     if (!canvas.captureStream || !window.MediaRecorder) { say('Ton navigateur ne sait pas enregistrer de vidéo. Essaie avec Chrome.'); return false; }
     var long = Math.max(view.w, view.h), pr_ = Math.min(window.devicePixelRatio || 1, 2, 1280 / long);
     rec.pr = Math.max(0.5, pr_); rec.on = true; resize();
@@ -1557,15 +1623,16 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
       try { initAudio(); recDest = actx.createMediaStreamDestination(); recDest.stream.getAudioTracks().forEach(function (t) { stream.addTrack(t); audioOn = true; }); } catch (e) { recDest = null; }
     }
     var mime = pickMime(audioOn), mr = null;
-    try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 5000000 } : { videoBitsPerSecond: 5000000 }); }
+    try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 4000000 } : { videoBitsPerSecond: 4000000 }); }
     catch (e1) { try { mr = new MediaRecorder(stream); } catch (e2) { rec.on = false; rec.pr = 0; resize(); say('Impossible de démarrer l’enregistrement sur cet appareil.'); return false; } }
     recState.mr = mr; recState.chunks = []; recState.stream = stream; recState.mime = mr.mimeType || mime || 'video/webm';
     mr.ondataavailable = function (e) { if (e.data && e.data.size) recState.chunks.push(e.data); };
     mr.onstop = function () { finishRec(); };
     mr.start(250);
     recState.t0 = performance.now();
+    try { if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (l) { recState.wl = l; }, function () {}); } catch (eW) {}
     $('recbar').hidden = false; $('recT').textContent = '00:00';
-    recState.timer = setInterval(function () { $('recT').textContent = fmtT((performance.now() - recState.t0) / 1000); if ((performance.now() - recState.t0) > 120000) stopRec(); }, 250);
+    recState.timer = setInterval(function () { $('recT').textContent = fmtT((performance.now() - recState.t0) / 1000); if ((performance.now() - recState.t0) > recState.limit) { say('Durée maximale atteinte : enregistrement arrêté.'); stopRec(); } }, 250);
     $('recBtn').textContent = 'Arrêter l’enregistrement';
     invalidate();
     return true;
@@ -1579,6 +1646,7 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
   function finishRec() {
     if (!rec.on) return;
     rec.on = false; rec.pr = 0; recDest = null; resize();
+    try { if (recState.wl) { recState.wl.release(); recState.wl = null; } } catch (eR) {}
     $('recbar').hidden = true; $('recBtn').textContent = 'Enregistrer à la main';
     try { recState.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
     var type = (recState.mime || 'video/webm').split(';')[0];
@@ -1607,7 +1675,40 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
   $('recStop').addEventListener('click', stopRec);
 
   function at(ms, fn) { recState.tour.push(setTimeout(fn, ms)); }
-  function runTour() {
+  /* a tour is a list of timed events; the same plan gives the length shown to the user and the actual run */
+  function planTour(full) {
+    var step = +$('tourSpeed').value || 1800, ev = [], t = 2500, k;
+    var n = full ? Math.max(1, L - minFlipped()) : Math.min(5, L - 1);
+    ev.push([0, function () { tweenTo({ yaw: spineYaw() * 0.15, pitch: 0.12, zoom: 1.05 }, 2300); }]);
+    ev.push([t, function () { tweenTo({ yaw: 0, pitch: 0.06, zoom: 1 }, 800); }]);
+    t += 700;
+    for (k = 0; k < n; k++) {
+      (function (kk, tt) { ev.push([tt, function () { next(); if (kk % 2 === 0 || !full) tweenTo({ yaw: (kk % 4 < 2 ? 1 : -1) * 0.16, pitch: 0.1 + (kk % 2) * 0.05, zoom: 1.0 + 0.05 * (kk % 3) }, Math.min(step, 1800) - 100); }]); })(k, t + k * step);
+    }
+    t += n * step + 600;
+    if (full) {
+      ev.push([t, function () { setFlipped(minFlipped()); tweenTo({ yaw: spineYaw() * 0.3, pitch: 0.1, zoom: 1 }, 1600); }]);
+      t += 2400;
+      ev.push([t, function () { tweenTo({ yaw: sU * Math.PI, pitch: 0.12, zoom: 1 }, 5600); }]);
+      t += 5600 + 1300;
+      ev.push([t, function () { tweenTo({ yaw: sU * Math.PI * 2, pitch: 0, zoom: 1 }, 3200); }]);
+      t += 3200 + 300;
+      ev.push([t, function () { camTween = null; camState.yaw = 0; camState.pitch = 0; invalidate(); }]);
+      t += 200;
+    } else {
+      ev.push([t, function () { tweenTo({ yaw: 0, pitch: 0, zoom: 1 }, 900); }]);
+      t += 1100;
+    }
+    ev.push([t, function () { stopRec(); }]);
+    return { ev: ev, total: t };
+  }
+  function fmtDur(ms) { var s_ = Math.round(ms / 1000); return s_ < 60 ? s_ + ' s' : Math.floor(s_ / 60) + ' min ' + ('0' + (s_ % 60)).slice(-2) + ' s'; }
+  function updateTourInfo() {
+    if (!$('tourInfo') || !L) return;
+    var f = planTour(true), q = planTour(false);
+    $('tourInfo').textContent = 'Durée estimée : tour complet ≈ ' + fmtDur(f.total + 400) + ', tour rapide ≈ ' + fmtDur(q.total + 400) + '.';
+  }
+  function runTour(full) {
     if (rec.on) return;
     if (state.imgs.length < 2) { say('Importe au moins 2 images pour le tour automatique.'); return; }
     if (!state.cover) { state.cover = true; syncButtons(); rebuild(false); }
@@ -1616,29 +1717,23 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
     setFlipped(0, true); camTween = null;
     camState.yaw = spineYaw() * 1.5; camState.pitch = 0.2; camState.zoom = 1; camState.panX = 0; camState.panY = 0; invalidate();
     setTimeout(function () {
-      if (!startRec()) return;
-      var spreads = Math.min(5, L - 1), t = 0;
-      tweenTo({ yaw: spineYaw() * 0.15, pitch: 0.12, zoom: 1.05 }, 2300);
-      t = 2500;
-      at(t, function () { tweenTo({ yaw: 0, pitch: 0.06, zoom: 1 }, 800); });
-      t += 700;
-      for (var k = 0; k < spreads; k++) {
-        (function (kk) {
-          at(t + kk * 1700, function () { next(); tweenTo({ yaw: (kk % 2 ? -1 : 1) * 0.16, pitch: 0.1 + (kk % 2) * 0.05, zoom: 1.0 + 0.05 * (kk % 3) }, 1600); });
-        })(k);
-      }
-      t += spreads * 1700 + 600;
-      at(t, function () { tweenTo({ yaw: 0, pitch: 0, zoom: 1 }, 900); });
-      at(t + 1100, function () { stopRec(); });
+      var plan = planTour(full);
+      if (!startRec(Math.min(plan.total + 6000, 600000))) return;
+      plan.ev.forEach(function (e) { at(e[0], e[1]); });
     }, 350);
   }
-  $('tourBtn').addEventListener('click', runTour);
+  $('tourBtn').addEventListener('click', function () { runTour(false); });
+  $('tourFull').addEventListener('click', function () { runTour(true); });
+  $('tourSpeed').addEventListener('change', updateTourInfo);
 
   /* =====================================================================
      Start
      ===================================================================== */
-  function start(savedImgs, settings, meta) {
-    if (settings) { state.rtl = settings.rtl !== false; state.sound = settings.sound !== false; }
+  function resetMeta() { var m = state.meta; Object.keys(m).forEach(function (k) { delete m[k]; }); Object.keys(META_DEF).forEach(function (k) { m[k] = META_DEF[k]; }); }
+  function applyProject(savedImgs, settings, meta, keepMode) {
+    if (rec.on) stopRec();
+    state.auto = false; syncButtons();
+    resetMeta(); state.rtl = !settings || settings.rtl !== false;
     if (meta) {
       if (String(meta.bg).toLowerCase() === '#0a0a0f' && String(meta.fg).toLowerCase() === '#f2c879') { delete meta.bg; delete meta.fg; }
       Object.keys(state.meta).forEach(function (k) { if (meta[k] !== undefined) state.meta[k] = meta[k]; });
@@ -1650,21 +1745,102 @@ body.immersive .exit { display: inline-flex; position: fixed; z-index: 7; top: m
       var f = settings && typeof settings.flipped === 'number' && !state.sample ? settings.flipped : 0;
       resize();
       rebuild(false, f);
-      setMode('read');
-      camTween = null; camState.yaw = camState.pitch = 0;
-      invalidate();
+      setMode(keepMode ? state.mode : 'read');
+      camTween = null; if (!keepMode) { camState.yaw = camState.pitch = 0; }
+      invalidate(); refreshThumb();
     };
     var pending = 0, done = function () { if (--pending <= 0) after(); };
     if (state.meta.spine) { pending++; loadImgEl(state.meta.spine).then(function (im) { state.meta.spineImg = im; done(); }); }
     if (state.meta.back) { pending++; loadImgEl(state.meta.back).then(function (im) { state.meta.backImg = im; done(); }); }
     if (!pending) after();
   }
+  function start(savedImgs, settings, meta) {
+    if (settings) state.sound = settings.sound !== false;
+    applyProject(savedImgs, settings, meta, false);
+  }
+
+  /* ---------- projects ---------- */
+  function uid() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  function projKeys(id) { return ['imgs', 'settings', 'meta'].map(function (k) { return 'p:' + id + ':' + k; }); }
+  function projInfo() {
+    var base = PRJ.list.length + (PRJ.list.length > 1 ? ' projets' : ' projet') + ' sur ce téléphone';
+    $('pInfo').textContent = base;
+    try { if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(function (q) { if (q && q.usage) $('pInfo').textContent = base + ' · ' + (q.usage / 1048576).toFixed(0) + ' Mo utilisés'; }); } catch (e) {}
+  }
+  function drawProjBar() {
+    var box = $('projChips'); box.innerHTML = '';
+    PRJ.list.forEach(function (p) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', String(p.id === PRJ.cur));
+      if (p.thumb) { var im = document.createElement('img'); im.alt = ''; im.src = p.thumb; b.appendChild(im); } else { var ph = document.createElement('span'); ph.className = 'ph'; b.appendChild(ph); }
+      var cn = document.createElement('span'), nm = document.createElement('b'), sm = document.createElement('small'); cn.className = 'cn';
+      nm.textContent = p.name; sm.textContent = p.n ? p.n + ' planche' + (p.n > 1 ? 's' : '') : 'exemple'; cn.appendChild(nm); cn.appendChild(sm); b.appendChild(cn);
+      b.addEventListener('click', function () { if (p.id !== PRJ.cur) switchProject(p.id); });
+      box.appendChild(b);
+    });
+    var add = document.createElement('button'); add.type = 'button'; add.className = 'chip add'; add.textContent = '+ Nouveau'; add.addEventListener('click', newProject); box.appendChild(add);
+    var e = curEntry(); if (document.activeElement !== $('pName')) $('pName').value = e ? e.name : '';
+    $('pSend').href = 'publier.html?projet=' + encodeURIComponent(PRJ.cur || '');
+    projInfo();
+  }
+  function newProject() {
+    var name = 'Projet ' + (PRJ.list.length + 1);
+    flushSave().then(function () {
+      var id = uid(); PRJ.list.push({ id: id, name: name, n: 0, updated: Date.now(), thumb: null, sample: true }); PRJ.cur = id;
+      return idbSet({ projects: PRJ.list, current: id }).catch(function () {});
+    }).then(function () {
+      var m = JSON.parse(JSON.stringify(META_DEF)); m.title = name.toUpperCase();
+      applyProject(null, null, m, true); saveSettings();
+      say('Projet « ' + name + ' » créé. Importe tes planches, puis renomme-le dans « Mes projets ».');
+    });
+  }
+  function switchProject(id) {
+    var target = null; PRJ.list.forEach(function (p) { if (p.id === id) target = p; }); if (!target) return;
+    flushSave().then(function () { return idbGet(projKeys(id)); }).then(function (r) {
+      PRJ.cur = id; idbSet({ current: id }).catch(function () {});
+      applyProject(r[0], r[1], r[2], true); say('Projet « ' + target.name + ' » ouvert.');
+    });
+  }
+  $('pName').addEventListener('change', function () {
+    var e = curEntry(); if (!e) return; var v = $('pName').value.trim().slice(0, 40); if (v) e.name = v; $('pName').value = e.name;
+    idbSet({ projects: PRJ.list }).catch(function () {}); drawProjBar();
+  });
+  $('pNew').addEventListener('click', newProject);
+  $('pDup').addEventListener('click', function () {
+    var src = curEntry(); if (!src) return;
+    flushSave().then(function () { return idbGet(projKeys(PRJ.cur)); }).then(function (r) {
+      var id = uid(), e = Object.assign({}, src, { id: id, name: (src.name + ' (copie)').slice(0, 40), updated: Date.now() }), ks = projKeys(id), o = {};
+      o[ks[0]] = r[0] || null; o[ks[1]] = r[1] || null; o[ks[2]] = r[2] || null; PRJ.list.push(e); o.projects = PRJ.list;
+      return idbSet(o).then(function () { switchProject(id); });
+    }).catch(function () { say('La copie a échoué (espace insuffisant ?).'); });
+  });
+  $('pDel').addEventListener('click', function () {
+    var e = curEntry(); if (!e) return;
+    if (!confirm('Supprimer le projet « ' + e.name + ' » ? Ses planches et sa maquette seront effacées de ce téléphone.')) return;
+    var id = PRJ.cur, o = {}; projKeys(id).forEach(function (k) { o[k] = null; });
+    PRJ.list = PRJ.list.filter(function (p) { return p.id !== id; });
+    if (!PRJ.list.length) PRJ.list.push({ id: uid(), name: 'Projet 1', n: 0, updated: Date.now(), thumb: null, sample: true });
+    var nid = PRJ.list[0].id; PRJ.cur = null; o.projects = PRJ.list; o.current = nid;
+    idbSet(o).catch(function () {}).then(function () { return idbGet(projKeys(nid)); }).then(function (r) { PRJ.cur = nid; applyProject(r[0], r[1], r[2], true); say('Projet supprimé.'); });
+  });
   bindMock();
   applyTheme();
   var started = false;
   function go(a, b, c) { if (started) return; started = true; start(a, b, c); }
-  var guard = setTimeout(function () { go(null, null, null); }, 900);
-  idbGet(['imgs', 'settings', 'meta']).then(function (r) { clearTimeout(guard); go(r[0], r[1], r[2]); }).catch(function () { clearTimeout(guard); go(null, null, null); });
+  function memProject() { if (!PRJ.cur) { var id = uid(); PRJ.list = [{ id: id, name: 'Projet 1', n: 0, updated: Date.now(), thumb: null, sample: true }]; PRJ.cur = id; } }
+  var guard = setTimeout(function () { memProject(); go(null, null, null); }, 900);
+  idbGet(['projects', 'current', 'imgs', 'settings', 'meta']).then(function (r) {
+    var list = r[0], cur = r[1];
+    if (!(list && list.length)) {
+      var id = uid(), legacy = r[2] || r[3] || r[4];
+      PRJ.list = [{ id: id, name: legacy ? 'Mon projet' : 'Projet 1', n: r[2] ? r[2].length : 0, updated: Date.now(), thumb: null, sample: !r[2] }]; PRJ.cur = id;
+      var o = { projects: PRJ.list, current: id }; if (r[2]) o['p:' + id + ':imgs'] = r[2]; if (r[3]) o['p:' + id + ':settings'] = r[3]; if (r[4]) o['p:' + id + ':meta'] = r[4];
+      thumbDirty = true;
+      return idbSet(o).catch(function () {}).then(function () { return [r[2], r[3], r[4]]; });
+    }
+    var ok = list.some(function (p) { return p.id === cur; }); if (!ok) cur = list[0].id;
+    PRJ.list = list; PRJ.cur = cur;
+    return idbGet(projKeys(cur));
+  }).then(function (x) { clearTimeout(guard); go(x[0], x[1], x[2]); }).catch(function () { clearTimeout(guard); memProject(); go(null, null, null); });
 
   window.__iv = {
     setBias: function (b) { texBias = b; invalidate(); }, getTexMax: function () { return TEX_MAX; },

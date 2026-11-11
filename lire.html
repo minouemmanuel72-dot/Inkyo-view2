@@ -142,6 +142,8 @@ body.reading { overflow: hidden; }
 .endcard { display: flex; flex-direction: column; gap: 12px; align-items: center; padding: 40px 20px 80px; text-align: center; } .endcard h2 { font-family: var(--f-brand); margin: 0; }
 #scroll { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 54px 0 70px; }
 .sp { max-width: 900px; margin: 0 auto; min-height: 60vh; background: var(--bg2); } .sp.ok { min-height: 0; background: none; } .sp img { display: block; width: 100%; height: auto; }
+.lockb { position: absolute; top: 8px; left: 8px; background: var(--ink); color: var(--bg); font: 700 11px var(--f-mono); padding: 3px 8px; border-radius: 99px; }
+.card { position: relative; }
 .toast { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 99px; font-size: 13px; z-index: 8; }
 .toast[hidden] { display: none; }
 </style>
@@ -233,6 +235,9 @@ body.reading { overflow: hidden; }
       view.innerHTML = '<div class="empty"><h2>Rien à lire pour l\'instant</h2><p>' + (CAT.offline ? 'Le catalogue n\'a pas pu être chargé. Vérifie ta connexion.' : 'Aucune série n\'est publiée. Ajoute la première avec l\'onglet <a href="publier.html">Publier</a>.') + '</p></div>';
       return;
     }
+    var pub = CAT.series.filter(function (s) { return !s.prive; }), priv = [];
+    try { var mine = JSON.parse(localStorage.getItem('iv-private') || '[]'); priv = CAT.series.filter(function (s) { return s.prive && mine.indexOf(s.id) >= 0; }); } catch (e) {}
+    if (!pub.length && !priv.length) { view.innerHTML = '<div class="empty"><h2>Rien à lire pour l\'instant</h2><p>Aucune série publique pour le moment.</p></div>'; return; }
     var prog = getProg(), last = null;
     Object.keys(prog).forEach(function (id) { if (findS(id) && (!last || prog[id].t > prog[last].t)) last = id; });
     var h = '';
@@ -240,11 +245,14 @@ body.reading { overflow: hidden; }
       var s0 = findS(last), c0 = findC(s0, prog[last].n);
       if (c0) h += '<a class="resume" href="#/r/' + esc(last) + '/' + esc(c0.n) + '/' + prog[last].p + '"><span class="lbl">Reprendre</span><strong>' + esc(s0.titre) + '</strong><span>Chapitre ' + esc(c0.n) + ', page ' + prog[last].p + '</span></a>';
     }
-    h += '<h2 class="sec">Séries</h2><div class="grid">';
-    CAT.series.forEach(function (s) {
-      h += '<a class="card" href="#/s/' + esc(s.id) + '">' + coverHtml(s) + '<div class="ct">' + esc(s.titre) + '</div><div class="ca">' + esc(s.auteur || '') + ' · ' + (s.chapitres.length) + ' ch.</div></a>';
-    });
-    view.innerHTML = h + '</div>';
+    function cards(arr, lock) {
+      var g = '<div class="grid">';
+      arr.forEach(function (s) { g += '<a class="card" href="#/s/' + esc(s.id) + '">' + coverHtml(s) + (lock ? '<span class="lockb">Privé</span>' : '') + '<div class="ct">' + esc(s.titre) + '</div><div class="ca">' + esc(s.auteur || '') + ' · ' + (s.chapitres.length) + ' ch.</div></a>'; });
+      return g + '</div>';
+    }
+    if (pub.length) h += '<h2 class="sec">Séries</h2>' + cards(pub, false);
+    if (priv.length) h += '<h2 class="sec">Mes projets privés</h2><p class="ca" style="margin:0 0 10px">Visibles seulement sur cet appareil. Envoie le lien d\'une série à tes clients depuis sa page.</p>' + cards(priv, true);
+    view.innerHTML = h;
   }
   function seriesPage(id) {
     var s = findS(id); if (!s) { view.innerHTML = '<div class="empty"><h2>Série introuvable</h2><p><a href="#/">Retour à la bibliothèque</a></p></div>'; return; }
@@ -252,7 +260,7 @@ body.reading { overflow: hidden; }
     var prog = getProg()[s.id], chs = s.chapitres.slice(); if (chOrderDesc) chs.reverse();
     var first = s.chapitres[0], startHref = first ? '#/r/' + esc(s.id) + '/' + esc(first.n) : '#/s/' + esc(s.id), startLbl = 'Commencer';
     if (prog && findC(s, prog.n)) { startHref = '#/r/' + esc(s.id) + '/' + esc(prog.n) + '/' + prog.p; startLbl = 'Reprendre (ch. ' + esc(prog.n) + ', p. ' + prog.p + ')'; }
-    var h = '<a class="back" href="#/">‹ Bibliothèque</a><div class="shead">' + coverHtml(s) + '<div class="sinfo"><h1>' + esc(s.titre) + '</h1><div class="ca">' + esc(s.auteur || '') + '</div><p>' + esc(s.resume || '') + '</p>' + (first ? '<a class="btn primary" href="' + startHref + '">' + startLbl + '</a>' : '') + '</div></div>';
+    var h = '<a class="back" href="#/">‹ Bibliothèque</a><div class="shead">' + coverHtml(s) + '<div class="sinfo">' + (s.prive ? '<span class="lbl">Projet privé · lien non listé</span>' : '') + '<h1>' + esc(s.titre) + '</h1><div class="ca">' + esc(s.auteur || '') + '</div><p>' + esc(s.resume || '') + '</p>' + (first ? '<a class="btn primary" href="' + startHref + '">' + startLbl + '</a>' : '') + '<button class="btn small" id="shS" type="button">Partager la série</button></div></div>';
     h += '<div class="row"><h2 class="sec">Chapitres</h2><button class="btn small" id="ord" type="button">' + (chOrderDesc ? 'Du dernier au premier' : 'Du premier au dernier') + '</button></div><ul class="chl">';
     chs.forEach(function (c) {
       var done = prog && +prog.n === +c.n;
@@ -260,6 +268,12 @@ body.reading { overflow: hidden; }
     });
     if (!chs.length) h += '<li class="none">Pas encore de chapitre.</li>';
     view.innerHTML = h + '</ul>';
+    var shb = $('shS'); if (shb) shb.addEventListener('click', function () {
+      var url = location.origin + location.pathname + '#/s/' + s.id;
+      if (navigator.share) navigator.share({ title: s.titre, url: url }).catch(function () {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { alert('Lien copié :\n' + url); }, function () { prompt('Copie ce lien :', url); });
+      else prompt('Copie ce lien :', url);
+    });
     var o = $('ord'); if (o) o.addEventListener('click', function () { chOrderDesc = !chOrderDesc; seriesPage(id); });
   }
 

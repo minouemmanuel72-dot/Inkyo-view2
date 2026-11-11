@@ -127,6 +127,9 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
 .pser { margin-top: 6px; font-family: var(--f-brand); }
 .prow { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .prow small { color: var(--muted); }
+.chk { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.chk input { width: 20px; height: 20px; accent-color: var(--acc2); }
+.badge { font: 500 11px var(--f-mono); padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
 </style>
 <script>try { var __t = localStorage.getItem('iv-theme'); if (__t === 'light' || __t === 'dark') document.documentElement.setAttribute('data-theme', __t); } catch (e) {}</script>
 </head>
@@ -175,7 +178,10 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
       <div class="ctrl"><label for="sRes">Résumé</label><textarea id="sRes" rows="3" maxlength="400"></textarea></div>
       <div class="ctrl"><label for="sSens">Sens de lecture</label><select class="sel" id="sSens"><option value="rtl">Japonais (droite vers gauche)</option><option value="ltr">Occidental (gauche vers droite)</option></select></div>
       <div class="ctrl"><label for="sMode">Mode par défaut</label><select class="sel" id="sMode"><option value="page">Page par page</option><option value="scroll">Défilement vertical</option></select></div>
-      <div class="ctrl"><span class="lbl">Couverture</span>
+      <div class="ctrl"><label for="sVis">Visibilité</label><select class="sel" id="sVis"><option value="pub">Publique : visible dans la bibliothèque</option><option value="priv">Privée : lien non listé (projets clients)</option></select>
+        <div class="hint2">Une série privée n'apparaît pas dans la bibliothèque : seuls ceux qui ont le lien peuvent la lire. Ce n'est pas protégé par un mot de passe, et les images restent dans un dépôt GitHub public. Pour un travail vraiment confidentiel, n'utilise pas cet outil.</div></div>
+      <label class="chk"><input type="checkbox" id="covFirst" checked> Utiliser la première planche comme couverture</label>
+      <div class="ctrl"><span class="lbl">Ou une couverture à part</span>
         <label class="pick"><span class="btn" id="covBtn" style="width:100%">Choisir la couverture</span><input type="file" id="cov" accept="image/*"></label>
         <img id="covPrev" alt="" hidden class="covprev">
       </div>
@@ -189,6 +195,10 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
       <div class="ctrl"><label for="cQ">Qualité</label><select class="sel" id="cQ"><option value="std">Standard (1400 px)</option><option value="hi">Haute (1800 px)</option><option value="lo">Légère (1000 px)</option></select></div>
     </div>
     <div class="ctrl"><label for="cT">Titre du chapitre</label><input id="cT" type="text" maxlength="80" placeholder="facultatif"></div>
+    <div class="ctrl"><label for="srcPrj">Reprendre les planches d'un projet du Livre</label>
+      <div class="inline"><select class="sel" id="srcPrj" style="flex:1;min-width:0"></select><button class="btn" id="srcLoad" type="button">Charger</button></div>
+      <p class="note" id="srcNote"></p></div>
+    <span class="lbl">Ou depuis ton téléphone</span>
     <label class="pick"><span class="btn primary" style="width:100%">Ajouter les planches</span><input type="file" id="pages" accept="image/*" multiple></label>
     <ul class="plist" id="plist"></ul>
     <p class="note" id="plSum">Aucune planche pour l'instant. Ajoute-les dans l'ordre de lecture.</p>
@@ -199,7 +209,7 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
     <button class="btn primary" id="pub" type="button">Publier ce chapitre</button>
     <div class="bar" id="bar" hidden><i id="barI"></i></div>
     <p class="note" id="pubMsg"></p>
-    <a class="btn" id="pubLink" hidden>Voir le chapitre</a>
+    <div class="inline"><a class="btn" id="pubLink" hidden>Voir le chapitre</a><button class="btn" id="pubCopy" type="button" hidden>Copier le lien de la série</button></div>
     <button class="btn" id="zipBtn" type="button">Sans GitHub : télécharger les fichiers (ZIP)</button>
   </section>
 
@@ -265,6 +275,57 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
   });
   $('tForget').addEventListener('click', function () { T.token = ''; $('tok').value = ''; try { localStorage.setItem('iv-pub', JSON.stringify(T)); } catch (e) {} connMsg('Jeton oublié sur ce téléphone.', true); });
 
+  /* ---------- projects of the Livre tab (same browser storage) ---------- */
+  function idbGet(keys) {
+    return new Promise(function (res, rej) {
+      try {
+        var r = indexedDB.open('inkyo-view', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('kv'); };
+        r.onerror = function () { rej(r.error); };
+        r.onsuccess = function () {
+          var db = r.result;
+          Promise.all(keys.map(function (k) { return new Promise(function (ok) { var q = db.transaction('kv', 'readonly').objectStore('kv').get(k); q.onsuccess = function () { ok(q.result); }; q.onerror = function () { ok(undefined); }; }); })).then(res, rej);
+        };
+      } catch (e) { rej(e); }
+    });
+  }
+  var PL = [], PREFILL = null;
+  function applyPrefill() {
+    if (!PREFILL || $('serSel').value !== '__new') return;
+    if (!$('sTitre').value.trim() && PREFILL.titre) $('sTitre').value = PREFILL.titre;
+    if (!$('sAut').value.trim() && PREFILL.auteur) $('sAut').value = PREFILL.auteur;
+    $('sSens').value = PREFILL.sens;
+  }
+  function loadProjectList() {
+    var sel = $('srcPrj'); sel.innerHTML = '';
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Choisir un projet…'; sel.appendChild(o0);
+    return idbGet(['projects']).then(function (r) {
+      PL = (r[0] || []).filter(function (p) { return p.n > 0; });
+      PL.forEach(function (p) { var o = document.createElement('option'); o.value = p.id; o.textContent = p.name + ' (' + p.n + ' planche' + (p.n > 1 ? 's' : '') + ')'; sel.appendChild(o); });
+      if (!PL.length) $('srcNote').textContent = 'Aucun projet avec des planches sur ce téléphone. Importe d\'abord tes planches dans l\'onglet Livre.';
+      var want = new URLSearchParams(location.search).get('projet');
+      if (want && PL.some(function (p) { return p.id === want; })) { sel.value = want; loadProject(); }
+    }).catch(function () { $('srcNote').textContent = 'Impossible de lire les projets du Livre sur cet appareil.'; });
+  }
+  function loadProject() {
+    var id = $('srcPrj').value; if (!id) return;
+    var p = PL.filter(function (x) { return x.id === id; })[0];
+    $('srcNote').textContent = 'Chargement…';
+    idbGet(['p:' + id + ':imgs', 'p:' + id + ':meta', 'p:' + id + ':settings']).then(function (r) {
+      var imgs = r[0] || [], meta = r[1] || {}, set = r[2] || {};
+      if (!imgs.length) { $('srcNote').textContent = 'Ce projet n\'a pas de planches.'; return; }
+      pages.forEach(function (q) { URL.revokeObjectURL(q.url); }); pages = [];
+      var chain = Promise.resolve();
+      imgs.forEach(function (im) { chain = chain.then(function () { return fetch(im.src).then(function (x) { return x.blob(); }).then(function (b) { pages.push({ file: b, url: URL.createObjectURL(b) }); }); }); });
+      return chain.then(function () {
+        drawPages(); $('srcNote').textContent = imgs.length + ' planches chargées depuis « ' + (p ? p.name : id) + ' ».';
+        PREFILL = { titre: meta.title || '', auteur: meta.author || '', sens: set.rtl === false ? 'ltr' : 'rtl' };
+        applyPrefill();
+      });
+    }).catch(function () { $('srcNote').textContent = 'Le chargement a échoué.'; });
+  }
+  $('srcLoad').addEventListener('click', loadProject);
+
   /* ---------- catalogue (live site) ---------- */
   var CAT = { series: [] };
   function fetchSiteCat() {
@@ -284,7 +345,7 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
   function onSeries() {
     var isNew = $('serSel').value === '__new'; $('newSer').hidden = !isNew; $('newSer').style.display = isNew ? 'flex' : 'none';
     var s = curSeries(), mx = 0; if (s) s.chapitres.forEach(function (c) { if (+c.n > mx) mx = +c.n; });
-    $('cN').value = mx + 1;
+    $('cN').value = mx + 1; applyPrefill();
   }
   $('serSel').addEventListener('change', onSeries);
 
@@ -336,8 +397,11 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
     if (!pages.length) throw new Error('Ajoute au moins une planche.');
     if (isNew) {
       var titre = $('sTitre').value.trim(); if (!titre) throw new Error('Donne un titre à la série.');
-      var id = slug(titre), base = id, k = 2; while (CAT.series.some(function (x) { return x.id === id; })) id = base + '-' + (k++);
-      s = { id: id, titre: titre, auteur: $('sAut').value.trim(), resume: $('sRes').value.trim(), sens: $('sSens').value, lecture: $('sMode').value, couverture: coverBlob ? 'serie/' + id + '/cover.jpg' : '', chapitres: [] };
+      var id = slug(titre), base = id, k = 2, prive = $('sVis').value === 'priv';
+      if (prive) id = id + '-' + Math.random().toString(36).slice(2, 7);
+      while (CAT.series.some(function (x) { return x.id === id; })) id = base + '-' + (k++);
+      s = { id: id, titre: titre, auteur: $('sAut').value.trim(), resume: $('sRes').value.trim(), sens: $('sSens').value, lecture: $('sMode').value, couverture: (coverBlob || $('covFirst').checked) ? 'serie/' + id + '/cover.jpg' : '', chapitres: [] };
+      if (prive) s.prive = true;
     } else s = curSeries();
     return { s: s, isNew: isNew, n: chN, titre: $('cT').value.trim() };
   }
@@ -349,6 +413,10 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
     }
     function done() {
       if (info.isNew && coverBlob) files.push({ path: 'serie/' + info.s.id + '/cover.jpg', blob: coverBlob });
+      else if (info.isNew && $('covFirst').checked && pages.length) {
+        toJpeg(pages[0].file, 700, 0.85).then(function (b) { files.push({ path: 'serie/' + info.s.id + '/cover.jpg', blob: b }); cb(1, null, files, dir); }, function (e) { cb(-1, e); });
+        return;
+      }
       cb(1, null, files, dir);
     }
     next();
@@ -404,6 +472,8 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
       }).then(function (cat) {
         prog(1); say('Publié. GitHub met le site à jour : le chapitre apparaît dans environ 1 à 2 minutes.');
         var a = $('pubLink'); a.href = 'lire.html#/r/' + encodeURIComponent(info.s.id) + '/' + info.n; a.hidden = false;
+        var cp = $('pubCopy'); cp.hidden = false; cp.dataset.url = new URL('lire.html#/s/' + encodeURIComponent(info.s.id), location.href).href;
+        if (info.s.prive) rememberPrivate(info.s.id);
         pages.forEach(function (p) { URL.revokeObjectURL(p.url); }); pages = []; drawPages(); coverBlob = null; $('covPrev').hidden = true;
         CAT = cat; drawSeriesSel(info.s.id); drawPubList(); $('cT').value = ''; $('sTitre').value = ''; $('sAut').value = ''; $('sRes').value = '';
       }).catch(function (e) { say(explain(e), true); }).then(function () { busy = false; $('pub').disabled = false; });
@@ -445,12 +515,32 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
     });
   });
 
+  function rememberPrivate(id) { try { var a = JSON.parse(localStorage.getItem('iv-private') || '[]'); if (a.indexOf(id) < 0) { a.push(id); localStorage.setItem('iv-private', JSON.stringify(a)); } } catch (e) {} }
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { say('Lien copié : ' + t); }, function () { say(t); });
+    else say(t);
+  }
+  $('pubCopy').addEventListener('click', function () { copyText($('pubCopy').dataset.url); });
+
   /* ---------- published list ---------- */
   function drawPubList() {
     var box = $('pubList'); box.innerHTML = '';
     if (!CAT.series.length) { box.innerHTML = '<p class="note">Aucune série publiée pour l\'instant.</p>'; return; }
     CAT.series.forEach(function (s) {
-      var h = document.createElement('div'); h.className = 'pser'; h.innerHTML = '<b>' + esc(s.titre) + '</b>'; box.appendChild(h);
+      var h = document.createElement('div'); h.className = 'pser prow'; h.innerHTML = '<b>' + esc(s.titre) + '</b><span><span class="badge">' + (s.prive ? 'Privée' : 'Publique') + '</span> <button class="btn small" type="button">' + (s.prive ? 'Rendre publique' : 'Rendre privée') + '</button> <button class="btn small" type="button">Copier le lien</button></span>'; box.appendChild(h);
+      if (s.prive) rememberPrivate(s.id);
+      (function (ser, head) {
+        var bs = head.querySelectorAll('button');
+        bs[0].addEventListener('click', function () {
+          if (!T.token) { say('Connecte ton site pour changer la visibilité.', true); return; }
+          saveConn(); say('Mise à jour du catalogue…');
+          liveCatalogue().then(function (cat) {
+            cat.series.forEach(function (x) { if (x.id === ser.id) { if (x.prive) delete x.prive; else x.prive = true; } });
+            return commitFiles([{ path: 'catalogue.json', text: JSON.stringify(cat, null, 1) }], 'Visibilité de ' + ser.titre, function () {}).then(function () { CAT = cat; });
+          }).then(function () { say('Visibilité modifiée. Le site se met à jour dans 1 à 2 minutes.'); drawPubList(); }, function (e) { say(explain(e), true); });
+        });
+        bs[1].addEventListener('click', function () { copyText(new URL('lire.html#/s/' + encodeURIComponent(ser.id), location.href).href); });
+      })(s, h);
       s.chapitres.forEach(function (c) {
         var r = document.createElement('div'); r.className = 'prow';
         r.innerHTML = '<span>Ch. ' + esc(c.n) + (c.titre ? ' · ' + esc(c.titre) : '') + ' <small>' + esc(c.pages) + ' p.</small></span><span><a class="btn small" href="lire.html#/r/' + encodeURIComponent(s.id) + '/' + encodeURIComponent(c.n) + '">Lire</a> <button class="btn small" type="button">Retirer</button></span>';
@@ -468,7 +558,7 @@ textarea { font: 500 15px/1.4 var(--f-body); padding: 10px 12px; border-radius: 
       });
     });
   }
-  refreshCat();
+  refreshCat(); loadProjectList();
   window.__pub = { get CAT() { return CAT; }, zip: zip };
   if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(function () {});
 })();
